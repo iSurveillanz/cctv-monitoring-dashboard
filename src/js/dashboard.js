@@ -237,6 +237,7 @@ function setupEvents() {
 
   darkModeBtn?.addEventListener('click', () => {
     document.body.classList.toggle('dark-mode')
+    document.body.classList.toggle('dark', document.body.classList.contains('dark-mode'))
     darkModeBtn.setAttribute('aria-pressed', String(document.body.classList.contains('dark-mode')))
   })
 
@@ -716,7 +717,11 @@ function renderPanels(records) {
 
   const groupedPanels = {}
 
-  ;['A1', 'A2', 'A3', 'A4', 'A5', 'B1', 'B2', 'B3', 'B4', 'B5'].forEach(panel => {
+  const defaultPanels = currentUnit === 'Unit 1'
+    ? ['A1', 'A2', 'A3', 'A4', 'A5', 'B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B9', 'B10', 'B11', 'B12', 'R1', 'R2', 'R3']
+    : ['D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8', 'D9', 'D10', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6', 'E7', 'E8', 'E9', 'E10']
+
+  defaultPanels.forEach(panel => {
     groupedPanels[panel] = []
   })
 
@@ -740,7 +745,7 @@ function renderPanels(records) {
     Object.entries(groupedPanels)
       .map(
         ([panel, panelRecords]) =>
-          renderPanel(
+          renderReferencePanel(
             panel,
             panelRecords
           )
@@ -756,6 +761,49 @@ function renderPanels(records) {
 /* =========================================================
    RENDER PANEL
 ========================================================= */
+
+function renderReferencePanel(panel, records) {
+  const isReport = /^R\d+$/i.test(panel)
+  const totalPanelCameras = records.reduce((total, record) => total + Number(record.cameras || 0), 0)
+  const operators = [...new Set(records.map(record => record.operator_name).filter(Boolean))]
+  const emptyRows = Array.from({ length: Math.max(1, 5 - records.length) }, () => `
+    <tr class="empty-assignment-row"><td>Select <span>⌄</span></td><td></td><td></td><td></td></tr>`).join('')
+
+  return `
+    <section class="box ${isReport ? 'report-panel' : 'normal-panel'}" aria-label="Panel ${escapeHtml(panel)}">
+      <div class="section">${escapeHtml(panel)}</div>
+      <input class="search panel-search" type="search" placeholder="Search …" aria-label="Search ${escapeHtml(panel)}">
+      <table class="assignment-table">
+        <thead><tr><th>Clients</th><th>Cam</th><th>Shift</th><th>VMS</th></tr></thead>
+        <tbody class="assignment-table-body">
+          ${records.map(renderReferenceRow).join('')}${emptyRows}
+        </tbody>
+        <tbody class="lightsnap"><tr><td colspan="4">LightSnap</td></tr></tbody>
+        <tfoot class="total"><tr><td>Total</td><td>${totalPanelCameras}</td><td colspan="2">${escapeHtml(operators.join(', ') || '—')}</td></tr></tfoot>
+      </table>
+    </section>
+  `
+}
+
+function renderReferenceRow(record) {
+  const color = escapeHtml(record.client_color || '#3b7cff')
+  const textColor = contrastColor(record.client_color || '#3b7cff')
+  return `
+    <tr class="assignment-row client-row-colored" data-search="${escapeHtml([record.client_name, record.shift, record.vms, record.operator_name].filter(Boolean).join(' '))}" style="--client-color:${color};--client-text:${textColor}">
+      <td><span class="client-name">${escapeHtml(record.client_name || 'Select')}</span><span class="row-actions"><button class="edit-btn" data-id="${escapeHtml(record.id)}" type="button" title="Edit">✎</button><button class="delete-btn" data-id="${escapeHtml(record.id)}" type="button" title="Delete">×</button></span></td>
+      <td>${Number(record.cameras || 0)}</td>
+      <td>${escapeHtml(record.shift || '—')}</td>
+      <td>${escapeHtml(record.vms || '—')}</td>
+    </tr>
+  `
+}
+
+function contrastColor(hex) {
+  const match = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || '')
+  if (!match) return '#ffffff'
+  const luminance = (Number.parseInt(match[1], 16) * 299 + Number.parseInt(match[2], 16) * 587 + Number.parseInt(match[3], 16) * 114) / 255000
+  return luminance > 0.56 ? '#1e293b' : '#ffffff'
+}
 
 function renderPanel(
   panel,
@@ -881,9 +929,9 @@ function setupPanelSearches() {
   document.querySelectorAll('.panel-search').forEach(input => {
     input.oninput = () => {
       const query = input.value.trim().toLowerCase()
-      const panel = input.closest('.assignment-panel')
-      panel?.querySelectorAll('.client-table-row').forEach(row => {
-        row.hidden = Boolean(query) && !row.dataset.search.toLowerCase().includes(query)
+      const panel = input.closest('.assignment-panel, .box')
+      panel?.querySelectorAll('.client-table-row, .assignment-row, .empty-assignment-row').forEach(row => {
+        row.hidden = Boolean(query) && !(row.dataset.search || row.textContent).toLowerCase().includes(query)
       })
     }
   })
