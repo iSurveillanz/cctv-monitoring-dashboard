@@ -7,8 +7,14 @@ const supabasePublishableKey =
 console.log('Supabase URL:', supabaseUrl)
 console.log(
   'Supabase key loaded:',
-  !!supabasePublishableKey
+  Boolean(supabasePublishableKey)
 )
+
+if (!supabaseUrl || !supabasePublishableKey) {
+  throw new Error(
+    'Supabase configuration missing. Check VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY.'
+  )
+}
 
 export const supabase = createClient(
   supabaseUrl,

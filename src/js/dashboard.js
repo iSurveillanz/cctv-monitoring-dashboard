@@ -15,7 +15,7 @@ export async function renderDashboard(root, unit = 'Unit 1') {
     <div class="dashboard">
 
       <!-- HEADER -->
-      <div class="dashboard-header">
+      <div class="dashboard-header page-header">
         <div>
           <h1>📋 CCTV Monitoring Dashboard</h1>
           <span class="unit-label">${escapeHtml(unit)}</span>
@@ -23,7 +23,12 @@ export async function renderDashboard(root, unit = 'Unit 1') {
       </div>
 
       <!-- TOOLBAR -->
-      <div class="toolbar">
+      <div class="toolbar card">
+
+        <div class="dashboard-meta">
+          <span id="dashboardDate" class="date-badge"></span>
+          <button id="darkModeBtn" class="dark-mode-btn" type="button" aria-label="Toggle dark mode">◐</button>
+        </div>
 
         <button id="refreshBtn" class="btn">
           🔄 Refresh
@@ -51,19 +56,19 @@ export async function renderDashboard(root, unit = 'Unit 1') {
       </div>
 
       <!-- STATISTICS -->
-      <div class="stats">
+      <div class="stats total">
 
-        <div class="stat">
+        <div class="stat total-clients">
           <span>Total Clients</span>
           <strong id="clientCount">0</strong>
         </div>
 
-        <div class="stat">
+        <div class="stat total-cameras">
           <span>Total Cameras</span>
           <strong id="cameraCount">0</strong>
         </div>
 
-        <div class="stat">
+        <div class="stat total-panels">
           <span>Total Panels</span>
           <strong id="panelCount">0</strong>
         </div>
@@ -220,6 +225,20 @@ export async function renderDashboard(root, unit = 'Unit 1') {
 ========================================================= */
 
 function setupEvents() {
+
+  const dateBadge = document.querySelector('#dashboardDate')
+  const darkModeBtn = document.querySelector('#darkModeBtn')
+
+  if (dateBadge) {
+    dateBadge.textContent = new Intl.DateTimeFormat(undefined, {
+      weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+    }).format(new Date())
+  }
+
+  darkModeBtn?.addEventListener('click', () => {
+    document.body.classList.toggle('dark-mode')
+    darkModeBtn.setAttribute('aria-pressed', String(document.body.classList.contains('dark-mode')))
+  })
 
   const refreshBtn =
     document.querySelector('#refreshBtn')
@@ -662,7 +681,7 @@ function renderPanels(records) {
   if (!container) return
 
 
-  if (!records.length) {
+  if (false && !records.length) {
 
     container.innerHTML = `
       <div class="empty">
@@ -697,6 +716,10 @@ function renderPanels(records) {
 
   const groupedPanels = {}
 
+  ;['A1', 'A2', 'A3', 'A4', 'A5', 'B1', 'B2', 'B3', 'B4', 'B5'].forEach(panel => {
+    groupedPanels[panel] = []
+  })
+
 
   records.forEach(record => {
 
@@ -726,6 +749,7 @@ function renderPanels(records) {
 
 
   setupCardButtons()
+  setupPanelSearches()
 }
 
 
@@ -737,6 +761,10 @@ function renderPanel(
   panel,
   records
 ) {
+
+  const panelClass = /report/i.test(panel)
+    ? 'report-panel'
+    : 'normal-panel'
 
   const totalPanelCameras =
     records.reduce(
@@ -750,7 +778,7 @@ function renderPanel(
 
 
   return `
-    <div class="assignment-panel">
+    <div class="assignment-panel ${panelClass}">
 
       <div class="panel-header">
 
@@ -785,16 +813,36 @@ function renderPanel(
       </div>
 
 
+      <label class="panel-search-wrap">
+        <span>Search panel</span>
+        <input class="panel-search" type="search" placeholder="Search client...">
+      </label>
+
+      <div class="panel-table-head" aria-hidden="true">
+        <span>Clients</span><span>Cam</span><span>Shift</span><span>VMS</span><span></span>
+      </div>
+
       <div class="client-list">
 
         ${
-          records
+          records.length
+            ? records
             .map(record =>
-              renderClient(record)
+              renderTableClient(record)
             )
             .join('')
+            : `<div class="client-card client-table-row empty-table-row">
+                <strong class="table-client-name">Select ▾</strong><span class="table-camera-count">—</span>
+                <span class="table-value">Select ▾</span><span class="table-value">Select ▾</span><span></span>
+              </div>`
         }
 
+      </div>
+
+      <div class="panel-footer">
+        <span>Total Cameras</span>
+        <strong>${totalPanelCameras}</strong>
+        <small>${escapeHtml(records.map(record => record.operator_name).filter(Boolean).filter((value, index, values) => values.indexOf(value) === index).join(' · ') || 'Operator: Not assigned')}</small>
       </div>
 
     </div>
@@ -805,6 +853,41 @@ function renderPanel(
 /* =========================================================
    RENDER CLIENT
 ========================================================= */
+
+function renderTableClient(record) {
+
+  const color = record.client_color || '#3b7cff'
+
+  return `
+    <div class="client-card client-table-row" data-search="${escapeHtml([
+      record.client_name,
+      record.shift,
+      record.vms,
+      record.operator_name
+    ].filter(Boolean).join(' '))}" style="border-left-color:${escapeHtml(color)}">
+      <strong class="table-client-name">${escapeHtml(record.client_name || 'Select')}</strong>
+      <span class="table-camera-count">${Number(record.cameras || 0)}</span>
+      <span class="table-value">${escapeHtml(record.shift || 'Select ▾')}</span>
+      <span class="table-value">${escapeHtml(record.vms || 'Select ▾')}</span>
+      <span class="client-actions">
+        <button class="edit-btn" data-id="${escapeHtml(record.id)}" title="Edit client" type="button">&#9998;</button>
+        <button class="delete-btn" data-id="${escapeHtml(record.id)}" title="Delete client" type="button">&#128465;</button>
+      </span>
+    </div>
+  `
+}
+
+function setupPanelSearches() {
+  document.querySelectorAll('.panel-search').forEach(input => {
+    input.oninput = () => {
+      const query = input.value.trim().toLowerCase()
+      const panel = input.closest('.assignment-panel')
+      panel?.querySelectorAll('.client-table-row').forEach(row => {
+        row.hidden = Boolean(query) && !row.dataset.search.toLowerCase().includes(query)
+      })
+    }
+  })
+}
 
 function renderClient(record) {
 
