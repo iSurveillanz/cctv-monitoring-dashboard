@@ -39,6 +39,7 @@ export async function renderDashboard(root, unit = 'Unit 1') {
           ➕ Add Client
         </button>
 
+        <button id="clearBtn" class="btn clear-btn" type="button">Clear All</button>
         <button id="masterBtn" class="btn master-btn" type="button">Client Master</button>
         <button id="exportBtn" class="btn excel-btn" type="button">Excel</button>
         <button id="reportBtn" class="btn report-btn" type="button">Report</button>
@@ -262,6 +263,7 @@ function setupEvents() {
     document.querySelector('#addBtn')
 
   const masterBtn = document.querySelector('#masterBtn')
+  const clearBtn = document.querySelector('#clearBtn')
   const exportBtn = document.querySelector('#exportBtn')
   const reportBtn = document.querySelector('#reportBtn')
   const closeMasterModal = document.querySelector('#closeMasterModal')
@@ -308,6 +310,7 @@ function setupEvents() {
   }
 
   masterBtn.onclick = () => openClientMasterModal()
+  clearBtn.onclick = () => clearUnitAssignments()
   closeMasterModal.onclick = () => closeClientMasterModal()
   masterSearch.oninput = () => renderClientMasterTable(masterSearch.value)
   exportBtn.onclick = () => exportAssignmentsCsv(currentRecords, `${currentUnit.replace(' ', '-')}-assignments.csv`)
@@ -616,6 +619,22 @@ function generateReport() {
   const report = `CCTV Daily Monitoring Report – ${currentUnit}\n\nTotal Clients: ${totalClients}\nTotal Cameras: ${totalCameras}\n\nGenerated: ${new Date().toLocaleString()}`
   navigator.clipboard?.writeText(report).catch(() => {})
   alert(report)
+}
+
+async function clearUnitAssignments() {
+  const confirmed = confirm(`Delete all ${currentUnit} assignments? This cannot be undone.`)
+  if (!confirmed) return
+
+  const { error } = await supabase
+    .from('cctv_assignments')
+    .delete()
+    .eq('unit', currentUnit)
+
+  if (error) {
+    alert(`Unable to clear assignments: ${error.message}`)
+    return
+  }
+  await loadRecords()
 }
 
 /* =========================================================

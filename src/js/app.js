@@ -109,14 +109,14 @@ async function showDashboard(session) {
           id="unit1"
           class="btn unit-btn active"
         >
-          Unit 1
+          Unit 1 – Page 1
         </button>
 
         <button
           id="unit2"
           class="btn unit-btn"
         >
-          Unit 2
+          Unit 2 – Page 2
         </button>
 
       </div>
