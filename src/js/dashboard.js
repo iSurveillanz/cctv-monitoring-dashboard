@@ -2,6 +2,7 @@ import { supabase } from './supabase.js'
 
 let currentUnit = 'Unit 1'
 let currentRecords = []
+let clientMasterRecords = []
 let autoRefreshTimer = null
 
 export async function renderDashboard(root, unit = 'Unit 1') {
@@ -37,6 +38,10 @@ export async function renderDashboard(root, unit = 'Unit 1') {
         <button id="addBtn" class="btn success">
           ➕ Add Client
         </button>
+
+        <button id="masterBtn" class="btn master-btn" type="button">Client Master</button>
+        <button id="exportBtn" class="btn excel-btn" type="button">Excel</button>
+        <button id="reportBtn" class="btn report-btn" type="button">Report</button>
 
         <input
           id="searchInput"
@@ -207,6 +212,15 @@ export async function renderDashboard(root, unit = 'Unit 1') {
       </div>
 
     </div>
+
+    <div id="clientMasterModal" class="modal hidden">
+      <div class="modal-box client-master-content">
+        <div class="modal-header"><h2>Client Master</h2><button id="closeMasterModal" class="modal-close" type="button">×</button></div>
+        <div class="master-toolbar"><input id="masterSearch" class="master-search" type="search" placeholder="Search client..."><button id="exportMasterBtn" class="btn excel-btn" type="button">Export CSV</button></div>
+        <div class="stats-box"><span>Total Clients</span><strong id="masterClientCount">0</strong></div>
+        <div class="master-table-container"><table class="master-table"><thead><tr><th>#</th><th>Client Name</th><th>Cameras</th><th>Shift</th><th>VMS</th><th>Color</th><th>Action</th></tr></thead><tbody id="masterTableBody"></tbody></table></div>
+      </div>
+    </div>
   `
 
   setupEvents()
@@ -247,6 +261,13 @@ function setupEvents() {
   const addBtn =
     document.querySelector('#addBtn')
 
+  const masterBtn = document.querySelector('#masterBtn')
+  const exportBtn = document.querySelector('#exportBtn')
+  const reportBtn = document.querySelector('#reportBtn')
+  const closeMasterModal = document.querySelector('#closeMasterModal')
+  const masterSearch = document.querySelector('#masterSearch')
+  const exportMasterBtn = document.querySelector('#exportMasterBtn')
+
   const searchInput =
     document.querySelector('#searchInput')
 
@@ -285,6 +306,13 @@ function setupEvents() {
   addBtn.onclick = () => {
     openAddModal()
   }
+
+  masterBtn.onclick = () => openClientMasterModal()
+  closeMasterModal.onclick = () => closeClientMasterModal()
+  masterSearch.oninput = () => renderClientMasterTable(masterSearch.value)
+  exportBtn.onclick = () => exportAssignmentsCsv(currentRecords, `${currentUnit.replace(' ', '-')}-assignments.csv`)
+  exportMasterBtn.onclick = () => exportAssignmentsCsv(clientMasterRecords, 'client-master.csv')
+  reportBtn.onclick = () => generateReport()
 
 
   searchInput.oninput = () => {
@@ -390,6 +418,8 @@ async function loadRecords() {
 
   currentRecords = data || []
 
+  await loadClientMasterRecords()
+
 
   console.log(
     `Loaded ${currentRecords.length} records`
@@ -401,6 +431,27 @@ async function loadRecords() {
   populateFilters()
 
   applyFilters()
+}
+
+async function loadClientMasterRecords() {
+  const { data, error } = await supabase
+    .from('cctv_assignments')
+    .select('id, client_name, cameras, shift, vms, client_color, operator_name, updated_at')
+    .not('client_name', 'is', null)
+    .order('client_name', { ascending: true })
+
+  if (error) {
+    console.error('Client master load error:', error)
+    clientMasterRecords = []
+    return
+  }
+
+  const uniqueClients = new Map()
+  ;(data || []).forEach(record => {
+    const name = String(record.client_name || '').trim().toLowerCase()
+    if (name && !uniqueClients.has(name)) uniqueClients.set(name, record)
+  })
+  clientMasterRecords = [...uniqueClients.values()]
 }
 
 
@@ -492,6 +543,80 @@ function updateStatistics(records) {
   }
 }
 
+
+/* =========================================================
+   CLIENT MASTER / EXPORT / REPORT
+========================================================= */
+
+function openClientMasterModal() {
+  renderClientMasterTable()
+  document.querySelector('#clientMasterModal')?.classList.remove('hidden')
+}
+
+function closeClientMasterModal() {
+  document.querySelector('#clientMasterModal')?.classList.add('hidden')
+}
+
+function renderClientMasterTable(query = '') {
+  const body = document.querySelector('#masterTableBody')
+  const count = document.querySelector('#masterClientCount')
+  if (!body || !count) return
+
+  const search = query.trim().toLowerCase()
+  const clients = clientMasterRecords.filter(record => String(record.client_name || '').toLowerCase().includes(search))
+  count.textContent = clientMasterRecords.length
+  body.innerHTML = clients.map((record, index) => `
+    <tr>
+      <td>${index + 1}</td><td>${escapeHtml(record.client_name)}</td><td>${Number(record.cameras || 0)}</td>
+      <td>${escapeHtml(record.shift || '—')}</td><td>${escapeHtml(record.vms || '—')}</td>
+      <td><span class="color-swatch" style="background:${escapeHtml(record.client_color || '#3b7cff')}"></span>${escapeHtml(record.client_color || '#3b7cff')}</td>
+      <td><button class="master-edit-btn" data-id="${escapeHtml(record.id)}" type="button">Edit</button><button class="master-delete-btn" data-id="${escapeHtml(record.id)}" type="button">Delete</button></td>
+    </tr>`).join('') || '<tr><td colspan="7">No clients found.</td></tr>'
+
+  body.querySelectorAll('.master-edit-btn').forEach(button => {
+    button.onclick = () => {
+      const record = clientMasterRecords.find(item => item.id === button.dataset.id)
+      if (record) {
+        closeClientMasterModal()
+        openEditModal(record)
+      }
+    }
+  })
+
+  body.querySelectorAll('.master-delete-btn').forEach(button => {
+    button.onclick = async () => {
+      const record = clientMasterRecords.find(item => item.id === button.dataset.id)
+      if (!record || !confirm(`Delete the client record for ${record.client_name}?`)) return
+      const { error } = await supabase.from('cctv_assignments').delete().eq('id', record.id)
+      if (error) {
+        alert(`Unable to delete client: ${error.message}`)
+        return
+      }
+      await loadRecords()
+      renderClientMasterTable(query)
+    }
+  })
+}
+
+function exportAssignmentsCsv(records, fileName) {
+  const header = ['Client Name', 'Cameras', 'Shift', 'VMS', 'Color']
+  const quote = value => `"${String(value ?? '').replaceAll('"', '""')}"`
+  const rows = records.map(record => [record.client_name, record.cameras, record.shift, record.vms, record.client_color].map(quote).join(','))
+  const blob = new Blob([[header.join(','), ...rows].join('\n')], { type: 'text/csv;charset=utf-8' })
+  const link = document.createElement('a')
+  link.href = URL.createObjectURL(blob)
+  link.download = fileName
+  link.click()
+  URL.revokeObjectURL(link.href)
+}
+
+function generateReport() {
+  const totalCameras = currentRecords.reduce((total, record) => total + Number(record.cameras || 0), 0)
+  const totalClients = new Set(currentRecords.map(record => String(record.client_name || '').trim().toLowerCase()).filter(Boolean)).size
+  const report = `CCTV Daily Monitoring Report – ${currentUnit}\n\nTotal Clients: ${totalClients}\nTotal Cameras: ${totalCameras}\n\nGenerated: ${new Date().toLocaleString()}`
+  navigator.clipboard?.writeText(report).catch(() => {})
+  alert(report)
+}
 
 /* =========================================================
    FILTER OPTIONS
@@ -755,6 +880,7 @@ function renderPanels(records) {
 
   setupCardButtons()
   setupPanelSearches()
+  setupAssignmentSelects()
 }
 
 
@@ -766,8 +892,11 @@ function renderReferencePanel(panel, records) {
   const isReport = /^R\d+$/i.test(panel)
   const totalPanelCameras = records.reduce((total, record) => total + Number(record.cameras || 0), 0)
   const operators = [...new Set(records.map(record => record.operator_name).filter(Boolean))]
+  const clientOptions = clientMasterRecords.map(record =>
+    `<option value="${escapeHtml(record.id)}">${escapeHtml(record.client_name)}</option>`
+  ).join('')
   const emptyRows = Array.from({ length: Math.max(1, 5 - records.length) }, () => `
-    <tr class="empty-assignment-row"><td>Select <span>⌄</span></td><td></td><td></td><td></td></tr>`).join('')
+    <tr class="empty-assignment-row"><td><select class="assignment-client-select" data-panel="${escapeHtml(panel)}"><option value="">Select</option>${clientOptions}</select></td><td></td><td></td><td></td></tr>`).join('')
 
   return `
     <section class="box ${isReport ? 'report-panel' : 'normal-panel'}" aria-label="Panel ${escapeHtml(panel)}">
@@ -933,6 +1062,36 @@ function setupPanelSearches() {
       panel?.querySelectorAll('.client-table-row, .assignment-row, .empty-assignment-row').forEach(row => {
         row.hidden = Boolean(query) && !(row.dataset.search || row.textContent).toLowerCase().includes(query)
       })
+    }
+  })
+}
+
+function setupAssignmentSelects() {
+  document.querySelectorAll('.assignment-client-select').forEach(select => {
+    select.onchange = async () => {
+      const masterRecord = clientMasterRecords.find(record => record.id === select.value)
+      if (!masterRecord) return
+
+      select.disabled = true
+      const { error } = await supabase.from('cctv_assignments').insert([{
+        unit: currentUnit,
+        panel: select.dataset.panel,
+        client_name: masterRecord.client_name,
+        cameras: Number(masterRecord.cameras || 0),
+        shift: masterRecord.shift || null,
+        vms: masterRecord.vms || null,
+        client_color: masterRecord.client_color || '#3b7cff',
+        operator_name: null,
+        updated_at: new Date().toISOString()
+      }])
+
+      if (error) {
+        console.error('Assignment creation error:', error)
+        alert(`Unable to assign client: ${error.message}`)
+        select.disabled = false
+        return
+      }
+      await loadRecords()
     }
   })
 }
