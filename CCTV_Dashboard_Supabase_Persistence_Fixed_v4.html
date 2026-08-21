@@ -1,0 +1,3801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CCTV Monitoring Dashboard – Date Tabs (Fixed)</title>
+
+    <style>
+        /* ── reset & base ── */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', 'Roboto', system-ui, sans-serif;
+            background: #f2f5f9;
+            padding: 28px 32px;
+            color: #1e293b;
+            transition: background 0.2s, color 0.2s;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        body.modal-open {
+            overflow: hidden;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #e9edf4;
+            border-radius: 12px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #b0bccf;
+            border-radius: 12px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        h2 {
+            font-size: 26px;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+            color: #0b1a33;
+            margin: 0 0 6px 0;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+
+        .page-header h2 span {
+            font-weight: 400;
+            color: #5a6e8a;
+            font-size: 16px;
+            margin-left: 10px;
+        }
+
+        .page-switcher {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+
+        .page-switcher button {
+            padding: 9px 18px;
+            border: 1px solid #d8dfe9;
+            border-radius: 8px;
+            background: #ffffff;
+            color: #1e293b;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            letter-spacing: 0.2px;
+        }
+
+        .page-switcher button:hover {
+            border-color: #b0bccf;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+
+        .page-switcher button.active {
+            background: #3b7cff;
+            color: #ffffff;
+            border-color: #3b7cff;
+            box-shadow: 0 4px 12px rgba(59, 124, 255, 0.2);
+        }
+
+        .page-container {
+            display: none;
+            animation: fadeSlideIn 0.2s ease;
+        }
+
+        .page-container.active {
+            display: block;
+        }
+
+        @keyframes fadeSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ── TOP BAR ── */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            background: #ffffff;
+            padding: 12px 20px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.02);
+            border: 1px solid #e9edf4;
+            margin-bottom: 20px;
+        }
+
+        .top-bar .left-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .top-bar .right-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .globalSearch {
+            width: 220px;
+            padding: 9px 14px 9px 38px;
+            border-radius: 8px;
+            border: 1px solid #d8dfe9;
+            background: #f8fafc url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%2394a3b8" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>') no-repeat 12px center;
+            background-size: 16px;
+            font-size: 13px;
+            transition: 0.2s;
+            outline: none;
+            color: #1e293b;
+        }
+
+        .globalSearch:focus {
+            border-color: #3b7cff;
+            background-color: #ffffff;
+            box-shadow: 0 0 0 4px rgba(59, 124, 255, 0.08);
+        }
+
+        .dateBox {
+            font-size: 14px;
+            font-weight: 500;
+            color: #475569;
+            background: #f1f4f9;
+            padding: 7px 16px;
+            border-radius: 30px;
+            letter-spacing: 0.2px;
+            white-space: nowrap;
+            border: 1px solid #e2e8f0;
+        }
+
+        /* ── TOOLBAR ── */
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 22px;
+            background: #ffffff;
+            padding: 12px 18px;
+            border-radius: 12px;
+            border: 1px solid #e9edf4;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+            align-items: center;
+        }
+
+        .toolbar button {
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 12.5px;
+            font-weight: 600;
+            cursor: pointer;
+            color: #fff;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: 0.2s;
+            letter-spacing: 0.2px;
+            background: #eef2f6;
+            color: #1e293b;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+        }
+
+        .toolbar button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+        }
+
+        .toolbar button:active {
+            transform: scale(0.96);
+        }
+
+        .btn-clear {
+            background: #f1f5f9;
+            color: #1e293b;
+        }
+        .btn-clear:hover {
+            background: #e2e8f0;
+        }
+
+        .btn-excel {
+            background: #1e7b4c;
+            color: #fff;
+        }
+        .btn-excel:hover {
+            background: #166b3f;
+        }
+
+        .btn-report {
+            background: #2563eb;
+            color: #fff;
+        }
+        .btn-report:hover {
+            background: #1d4ed8;
+        }
+
+        .btn-dark {
+            background: #1e293b;
+            color: #fff;
+        }
+        .btn-dark:hover {
+            background: #0f172a;
+        }
+
+        .btn-add {
+            background: #3b7cff;
+            color: #fff;
+        }
+        .btn-add:hover {
+            background: #2a6af0;
+        }
+
+        .btn-master {
+            background: #7c3aed;
+            color: #fff;
+        }
+        .btn-master:hover {
+            background: #6d28d9;
+        }
+
+        .btn-login {
+            background: #0ea5e9;
+            color: #fff;
+        }
+        .btn-login:hover {
+            background: #0284c7;
+        }
+
+        .btn-logout {
+            background: #ef4444;
+            color: #fff;
+        }
+        .btn-logout:hover {
+            background: #dc2626;
+        }
+
+        /* ── TOP CARDS ── */
+        .topbar {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-bottom: 24px;
+        }
+
+        .card {
+            flex: 1;
+            min-width: 180px;
+            background: #ffffff;
+            padding: 18px 22px;
+            border-radius: 12px;
+            border: 1px solid #e9edf4;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+            transition: 0.2s;
+        }
+
+        .card:hover {
+            border-color: #cdd7e6;
+        }
+
+        .card h3 {
+            font-size: 13px;
+            font-weight: 500;
+            color: #64748b;
+            letter-spacing: 0.3px;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+
+        .card p {
+            font-size: 32px;
+            font-weight: 700;
+            color: #0b1a33;
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+
+        .card.accent-blue p {
+            color: #2563eb;
+        }
+        .card.accent-purple p {
+            color: #7c3aed;
+        }
+
+        /* ── GRID CONTAINER ── */
+        .container {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 16px;
+            margin-top: 6px;
+            align-items: start;
+            flex: 1;
+        }
+
+        .box {
+            background: #ffffff;
+            border-radius: 12px;
+            border: 1px solid #e9edf4;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            transition: all 0.2s ease;
+            min-height: 280px;
+        }
+
+        .box:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+            border-color: inherit;
+        }
+
+        .box.normal-panel {
+            background: #FFF9E6;
+            border: 1px solid #F3D46A;
+        }
+
+        .box.normal-panel .section {
+            background: linear-gradient(to bottom, #FFFDF2, #FFF6D8);
+            border-bottom: 2px solid #E6C65C;
+        }
+
+        body.dark .box.normal-panel {
+            background: #2a2410;
+            border-color: #4a3a20;
+        }
+
+        body.dark .box.normal-panel .section {
+            background: linear-gradient(to bottom, #3a2a10, #2a1a00);
+            border-bottom-color: #6a5a40;
+        }
+
+        .box.report-panel {
+            background: #ECFDF3;
+            border: 1px solid #9AD7AF;
+        }
+
+        .box.report-panel .section {
+            background: linear-gradient(to bottom, #F4FFF7, #E4F8EA);
+            border-bottom: 2px solid #55B975;
+        }
+
+        body.dark .box.report-panel {
+            background: #1a2a1f;
+            border-color: #3a5a45;
+        }
+
+        body.dark .box.report-panel .section {
+            background: linear-gradient(to bottom, #2a3a2f, #1a2a1f);
+            border-bottom-color: #4a7a5a;
+        }
+
+        .section {
+            background: #f8fafc;
+            border-bottom: 1px solid #e9edf4;
+            text-align: center;
+            font-weight: 600;
+            padding: 12px 8px;
+            font-size: 14px;
+            color: #0b1a33;
+            letter-spacing: 0.3px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            font-size: 12px;
+            background: #ffffff;
+        }
+
+        thead th {
+            background: #ffffff;
+            color: #1e293b;
+            padding: 8px 5px;
+            font-size: 10.5px;
+            font-weight: 600;
+            text-align: center;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        tbody td {
+            padding: 6px 4px;
+            border-bottom: 1px solid #f1f4f9;
+            text-align: center;
+            vertical-align: middle;
+            word-wrap: break-word;
+            background: #ffffff;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        tbody tr:hover {
+            background: #ffffff;
+        }
+
+        tbody tr:nth-child(even) {
+            background: #ffffff;
+        }
+
+        select {
+            width: 100%;
+            padding: 5px 3px;
+            border: none;
+            background: transparent;
+            text-align: center;
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            color: inherit;
+            border-radius: 4px;
+            transition: 0.15s;
+        }
+
+        select:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        select:focus {
+            outline: 2px solid rgba(255, 255, 255, 0.6);
+            outline-offset: -1px;
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        select option {
+            color: #1e293b;
+            background: #ffffff;
+        }
+
+        input[readonly] {
+            border: none;
+            outline: none;
+            background: transparent;
+            text-align: center;
+            font-size: 11px;
+            font-weight: 500;
+            color: inherit;
+            width: 100%;
+            padding: 4px 2px;
+        }
+
+        select:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .search {
+            width: calc(100% - 16px);
+            margin: 8px auto 6px;
+            display: block;
+            padding: 5px 10px 5px 30px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            outline: none;
+            font-size: 11px;
+            background: #ffffff url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="%2394a3b8" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>') no-repeat 8px center;
+            background-size: 12px;
+            transition: 0.15s;
+        }
+
+        .search:focus {
+            border-color: #3b7cff;
+            background-color: #ffffff;
+            box-shadow: 0 0 0 3px rgba(59, 124, 255, 0.06);
+        }
+
+        .lightsnap {
+            background: #ffffff;
+            font-weight: 600;
+            text-align: center;
+            font-size: 11px;
+            padding: 6px;
+            color: #1e4a8a;
+            letter-spacing: 0.3px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .lightsnap td {
+            border: none;
+            color: #1e4a8a;
+            padding: 6px;
+            background: #ffffff;
+        }
+
+        .total {
+            background: #ffffff;
+            font-weight: 700;
+            font-size: 12px;
+            color: #0b1a33;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .total td {
+            border: none;
+            padding: 8px 6px;
+            color: #0b1a33;
+            background: #ffffff;
+        }
+
+        .total td:first-child {
+            text-align: left;
+            padding-left: 10px;
+        }
+
+        .total td:nth-child(2) {
+            font-size: 15px;
+            color: #2563eb;
+        }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 1400px) {
+            .container {
+                grid-template-columns: repeat(5, 1fr);
+                gap: 12px;
+            }
+        }
+
+        @media (max-width: 1200px) {
+            .container {
+                grid-template-columns: repeat(4, 1fr);
+            }
+            body {
+                padding: 20px 16px;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .container {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr 1fr;
+            }
+            .top-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .globalSearch {
+                width: 100%;
+            }
+            .dateBox {
+                text-align: center;
+            }
+            .toolbar button {
+                flex: 1;
+                justify-content: center;
+            }
+            h2 {
+                font-size: 20px;
+            }
+            .top-bar .date-controls {
+                flex-wrap: wrap;
+            }
+            .top-bar .date-controls select,
+            .top-bar .date-controls input,
+            .top-bar .date-controls button {
+                width: 100%;
+                flex: 1;
+                min-width: 120px;
+            }
+            .date-tab-bar {
+                overflow-x: auto;
+            }
+            .date-tab-bar .date-tabs {
+                flex-wrap: nowrap;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            body {
+                padding: 12px 10px;
+            }
+            .card p {
+                font-size: 26px;
+            }
+            .page-switcher {
+                flex-direction: column;
+                width: 100%;
+            }
+            .page-switcher button {
+                width: 100%;
+            }
+        }
+
+        /* ── DARK MODE ── */
+        body.dark {
+            background: #0f172a;
+            color: #e9edf4;
+        }
+
+        body.dark .top-bar,
+        body.dark .toolbar,
+        body.dark .card {
+            background: #1e293b;
+            border-color: #2d3a52;
+        }
+
+        body.dark .page-switcher button {
+            background: #1e293b;
+            border-color: #2d3a52;
+            color: #e9edf4;
+        }
+
+        body.dark .page-switcher button.active {
+            background: #3b7cff;
+            border-color: #3b7cff;
+        }
+
+        body.dark .section {
+            background: #1e293b;
+            border-color: #2d3a52;
+            color: #e9edf4;
+        }
+
+        body.dark table {
+            background: #1e293b;
+        }
+
+        body.dark thead th {
+            background: #1e293b;
+            color: #b8c9e0;
+            border-color: #2d3a52;
+        }
+
+        body.dark tbody td {
+            border-color: #253247;
+            background: #1e293b;
+        }
+
+        body.dark tbody tr:hover {
+            background: #1f2d47;
+        }
+        body.dark tbody tr:nth-child(even) {
+            background: #1e293b;
+        }
+
+        body.dark .search {
+            background-color: #131f37;
+            border-color: #2d3a52;
+            color: #e9edf4;
+        }
+        body.dark .search:focus {
+            border-color: #3b7cff;
+            background-color: #1a2844;
+        }
+
+        body.dark select {
+            background: transparent;
+            color: inherit;
+        }
+        body.dark select:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        body.dark select option {
+            background: #1e293b;
+            color: #e9edf4;
+        }
+
+        body.dark input[readonly] {
+            background: transparent;
+            color: inherit;
+        }
+
+        body.dark .lightsnap {
+            background: #1e293b;
+            color: #8bb3fa;
+            border-color: #2d3a52;
+        }
+        body.dark .lightsnap td {
+            color: #8bb3fa;
+            background: #1e293b;
+        }
+
+        body.dark .total {
+            background: #1e293b;
+            color: #e9edf4;
+            border-color: #2d3a52;
+        }
+        body.dark .total td {
+            color: #e9edf4;
+            background: #1e293b;
+        }
+        body.dark .total td:nth-child(2) {
+            color: #6b9fff;
+        }
+
+        body.dark .card p {
+            color: #e9edf4;
+        }
+        body.dark .card h3 {
+            color: #94a3b8;
+        }
+
+        body.dark .toolbar button {
+            background: #253247;
+            color: #e9edf4;
+        }
+        body.dark .toolbar button:hover {
+            background: #2d3a52;
+        }
+
+        body.dark .btn-clear {
+            background: #2d3a52;
+            color: #e9edf4;
+        }
+        body.dark .btn-clear:hover {
+            background: #3a4a66;
+        }
+
+        body.dark .btn-excel {
+            background: #1e7b4c;
+        }
+        body.dark .btn-report {
+            background: #2563eb;
+        }
+        body.dark .btn-dark {
+            background: #0f172a;
+        }
+        body.dark .btn-add {
+            background: #3b7cff;
+        }
+        body.dark .btn-master {
+            background: #7c3aed;
+        }
+
+        body.dark .btn-login {
+            background: #0ea5e9;
+        }
+        body.dark .btn-login:hover {
+            background: #0284c7;
+        }
+        body.dark .btn-logout {
+            background: #ef4444;
+        }
+        body.dark .btn-logout:hover {
+            background: #dc2626;
+        }
+
+        body.dark .dateBox {
+            background: #131f37;
+            border-color: #2d3a52;
+            color: #b8c9e0;
+        }
+
+        body.dark .globalSearch {
+            background-color: #131f37;
+            border-color: #2d3a52;
+            color: #e9edf4;
+        }
+        body.dark .globalSearch:focus {
+            border-color: #3b7cff;
+            background-color: #1a2844;
+        }
+
+        body.dark ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        body.dark ::-webkit-scrollbar-thumb {
+            background: #2d3a52;
+        }
+        body.dark ::-webkit-scrollbar-thumb:hover {
+            background: #3a4a66;
+        }
+
+        /* ── DATE TAB BAR (Excel/Google Sheets style) ── */
+        .date-tab-bar-wrapper {
+            margin-top: 20px;
+            background: #ffffff;
+            border: 1px solid #e9edf4;
+            border-radius: 12px;
+            padding: 6px 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+            overflow: hidden;
+            flex-wrap: nowrap;
+        }
+
+        body.dark .date-tab-bar-wrapper {
+            background: #1e293b;
+            border-color: #2d3a52;
+        }
+
+        .date-tab-bar {
+            flex: 1;
+            overflow-x: auto;
+            overflow-y: hidden;
+            display: flex;
+            align-items: center;
+            padding: 4px 0;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .date-tab-bar::-webkit-scrollbar {
+            height: 4px;
+        }
+        .date-tab-bar::-webkit-scrollbar-track {
+            background: #e9edf4;
+            border-radius: 4px;
+        }
+        .date-tab-bar::-webkit-scrollbar-thumb {
+            background: #b0bccf;
+            border-radius: 4px;
+        }
+        body.dark .date-tab-bar::-webkit-scrollbar-track {
+            background: #2d3a52;
+        }
+        body.dark .date-tab-bar::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+
+        .date-tabs {
+            display: flex;
+            gap: 2px;
+            align-items: center;
+            white-space: nowrap;
+            min-width: max-content;
+        }
+
+        .date-tab {
+            padding: 8px 16px;
+            border: none;
+            background: transparent;
+            border-radius: 6px 6px 0 0;
+            font-size: 13px;
+            font-weight: 500;
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            font-family: inherit;
+            letter-spacing: 0.2px;
+            border-bottom: 3px solid transparent;
+        }
+
+        .date-tab:hover {
+            background: #f1f4f9;
+            color: #1e293b;
+        }
+
+        .date-tab.active {
+            color: #0b1a33;
+            font-weight: 600;
+            border-bottom-color: #3b7cff;
+            background: #f8fafc;
+        }
+
+        body.dark .date-tab {
+            color: #94a3b8;
+        }
+        body.dark .date-tab:hover {
+            background: #253247;
+            color: #e9edf4;
+        }
+        body.dark .date-tab.active {
+            color: #e9edf4;
+            border-bottom-color: #3b7cff;
+            background: #131f37;
+        }
+
+        .date-tab .tab-close {
+            display: inline-block;
+            margin-left: 6px;
+            font-size: 14px;
+            font-weight: 300;
+            color: #94a3b8;
+            cursor: pointer;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            line-height: 18px;
+            text-align: center;
+            transition: 0.15s;
+        }
+
+        .date-tab .tab-close:hover {
+            background: #e2e8f0;
+            color: #ef4444;
+        }
+
+        body.dark .date-tab .tab-close:hover {
+            background: #2d3a52;
+            color: #f87171;
+        }
+
+        .date-tab-add {
+            padding: 8px 14px;
+            border: none;
+            background: #3b7cff;
+            color: #fff;
+            border-radius: 6px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 36px;
+            height: 36px;
+            flex-shrink: 0;
+        }
+
+        .date-tab-add:hover {
+            background: #2a6af0;
+            transform: scale(1.05);
+        }
+
+        body.dark .date-tab-add {
+            background: #3b7cff;
+        }
+        body.dark .date-tab-add:hover {
+            background: #2a6af0;
+        }
+
+        .date-tab-label {
+            font-size: 11px;
+            color: #94a3b8;
+            padding-right: 4px;
+            font-weight: 500;
+            display: none;
+        }
+
+        @media (min-width: 768px) {
+            .date-tab-label {
+                display: inline;
+            }
+        }
+
+        /* ── MODAL STACK ── */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            backdrop-filter: none;
+            animation: fadeIn 0.25s ease;
+        }
+
+        .modal.modal-backdrop-visible {
+            background: rgba(15, 23, 42, 0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        .client-modal-content,
+        .client-master-content,
+        .login-modal-content {
+            position: relative;
+            z-index: 1;
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 24px 64px rgba(0, 0, 0, 0.12);
+            animation: slideDown 0.25s ease;
+            border: 1px solid #e9edf4;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .client-modal-content {
+            margin: 8% auto;
+            padding: 32px 36px;
+            width: 90%;
+            max-width: 480px;
+        }
+
+        .client-master-content {
+            margin: 20px auto;
+            padding: 28px 32px;
+            width: 90%;
+            max-width: 1100px;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .login-modal-content {
+            margin: 10% auto;
+            padding: 40px 44px;
+            width: 90%;
+            max-width: 420px;
+        }
+
+        .login-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 14px;
+            border-bottom: 2px solid #e9edf4;
+        }
+
+        .login-modal-header h2 {
+            font-size: 22px;
+            color: #0b1a33;
+            margin: 0;
+        }
+
+        .login-close {
+            font-size: 28px;
+            font-weight: 300;
+            color: #94a3b8;
+            cursor: pointer;
+            transition: 0.2s;
+            line-height: 1;
+        }
+        .login-close:hover {
+            color: #1e293b;
+        }
+
+        .login-error {
+            color: #ef4444;
+            font-size: 13px;
+            margin-top: 8px;
+            display: none;
+            text-align: center;
+        }
+
+        body.dark .login-modal-content {
+            background: #1e293b;
+            border-color: #2d3a52;
+        }
+
+        body.dark .login-modal-header {
+            border-color: #2d3a52;
+        }
+        body.dark .login-modal-header h2 {
+            color: #e9edf4;
+        }
+        body.dark .login-close {
+            color: #94a3b8;
+        }
+        body.dark .login-close:hover {
+            color: #e9edf4;
+        }
+
+        .client-modal-header,
+        .client-master-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 14px;
+            border-bottom: 2px solid #e9edf4;
+        }
+
+        .client-modal-header h2,
+        .client-master-header h2 {
+            font-size: 20px;
+            color: #0b1a33;
+            margin: 0;
+        }
+
+        .client-close,
+        .client-master-close {
+            font-size: 28px;
+            font-weight: 300;
+            color: #94a3b8;
+            cursor: pointer;
+            transition: 0.2s;
+            line-height: 1;
+        }
+        .client-close:hover,
+        .client-master-close:hover {
+            color: #1e293b;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            font-size: 13px;
+            color: #1e293b;
+        }
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #d8dfe9;
+            border-radius: 8px;
+            font-size: 14px;
+            background: #fafcff;
+            transition: 0.15s;
+            color: #1e293b;
+        }
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #3b7cff;
+            box-shadow: 0 0 0 4px rgba(59, 124, 255, 0.08);
+            background: #ffffff;
+        }
+
+        .form-group .error {
+            color: #ef4444;
+            font-size: 12px;
+            margin-top: 4px;
+            display: none;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 22px;
+            justify-content: flex-end;
+        }
+
+        .modal-btn {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            color: #fff;
+        }
+        .btn-save {
+            background: #3b7cff;
+        }
+        .btn-save:hover {
+            background: #2a6af0;
+            transform: translateY(-1px);
+        }
+        .btn-cancel {
+            background: #e2e8f0;
+            color: #1e293b;
+        }
+        .btn-cancel:hover {
+            background: #cbd5e1;
+        }
+
+        .btn-login-submit {
+            background: #0ea5e9;
+            color: #fff;
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+        }
+        .btn-login-submit:hover {
+            background: #0284c7;
+        }
+
+        .master-toolbar {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 18px;
+            align-items: center;
+        }
+
+        .master-search {
+            flex: 1;
+            min-width: 180px;
+            padding: 9px 14px;
+            border: 1px solid #d8dfe9;
+            border-radius: 8px;
+            font-size: 13px;
+            background: #fafcff;
+            transition: 0.15s;
+            outline: none;
+        }
+        .master-search:focus {
+            border-color: #3b7cff;
+            box-shadow: 0 0 0 4px rgba(59, 124, 255, 0.08);
+        }
+
+        .master-btn {
+            padding: 9px 18px;
+            border: none;
+            border-radius: 8px;
+            font-size: 12.5px;
+            font-weight: 600;
+            cursor: pointer;
+            color: #fff;
+            transition: 0.2s;
+        }
+        .master-btn-export {
+            background: #1e7b4c;
+        }
+        .master-btn-export:hover {
+            background: #166b3f;
+        }
+        .master-btn-import {
+            background: #7c3aed;
+        }
+        .master-btn-import:hover {
+            background: #6d28d9;
+        }
+
+        .stats-box {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+            padding: 14px 18px;
+            background: #f8fafc;
+            border-radius: 10px;
+            margin-bottom: 18px;
+            border: 1px solid #e9edf4;
+        }
+
+        .stat-item {
+            padding: 4px 8px;
+        }
+        .stat-item label {
+            font-size: 12px;
+            color: #64748b;
+            font-weight: 500;
+        }
+        .stat-item value {
+            font-size: 22px;
+            font-weight: 700;
+            color: #0b1a33;
+            display: block;
+            margin-top: 2px;
+        }
+
+        .master-table-container {
+            overflow-x: auto;
+            overflow-y: auto;
+            border-radius: 10px;
+            border: 1px solid #e9edf4;
+        }
+
+        .master-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .master-table thead th {
+            background: #f1f4f9;
+            color: #1e293b;
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 11.5px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .master-table tbody td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #f1f4f9;
+            background: transparent;
+        }
+        body.dark .master-table tbody td {
+            background: transparent;
+        }
+
+        .master-table tbody tr:hover {
+            background: #f8fafc;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .btn-edit-client {
+            padding: 5px 12px;
+            background: #2563eb;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 600;
+            transition: 0.15s;
+        }
+        .btn-edit-client:hover {
+            background: #1d4ed8;
+        }
+        .btn-delete-client {
+            padding: 5px 12px;
+            background: #ef4444;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 600;
+            transition: 0.15s;
+        }
+        .btn-delete-client:hover {
+            background: #dc2626;
+        }
+
+        #importFile {
+            display: none;
+        }
+
+        .client-master-content::-webkit-scrollbar {
+            width: 8px;
+        }
+        .client-master-content::-webkit-scrollbar-track {
+            background: #f1f4f9;
+            border-radius: 10px;
+        }
+        .client-master-content::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+        .client-master-content::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        body.dark .client-modal-content,
+        body.dark .client-master-content {
+            background: #1e293b;
+            border-color: #2d3a52;
+        }
+
+        body.dark .client-modal-header,
+        body.dark .client-master-header {
+            border-color: #2d3a52;
+        }
+        body.dark .client-modal-header h2,
+        body.dark .client-master-header h2 {
+            color: #e9edf4;
+        }
+
+        body.dark .form-group label {
+            color: #cbd5e1;
+        }
+        body.dark .form-group input,
+        body.dark .form-group select {
+            background: #131f37;
+            border-color: #2d3a52;
+            color: #e9edf4;
+        }
+        body.dark .form-group input:focus,
+        body.dark .form-group select:focus {
+            border-color: #3b7cff;
+            background: #1a2844;
+        }
+
+        body.dark .master-search {
+            background: #131f37;
+            border-color: #2d3a52;
+            color: #e9edf4;
+        }
+        body.dark .master-search:focus {
+            border-color: #3b7cff;
+            background: #1a2844;
+        }
+
+        body.dark .stats-box {
+            background: #131f37;
+            border-color: #2d3a52;
+        }
+        body.dark .stat-item value {
+            color: #e9edf4;
+        }
+        body.dark .stat-item label {
+            color: #94a3b8;
+        }
+
+        body.dark .master-table-container {
+            border-color: #2d3a52;
+        }
+        body.dark .master-table thead th {
+            background: #131f37;
+            color: #b8c9e0;
+            border-color: #2d3a52;
+        }
+        body.dark .master-table tbody td {
+            border-color: #253247;
+        }
+        body.dark .master-table tbody tr:hover {
+            background: #1f2d47;
+        }
+
+        body.dark .client-close,
+        body.dark .client-master-close {
+            color: #94a3b8;
+        }
+        body.dark .client-close:hover,
+        body.dark .client-master-close:hover {
+            color: #e9edf4;
+        }
+
+        body.dark .btn-cancel {
+            background: #2d3a52;
+            color: #e9edf4;
+        }
+        body.dark .btn-cancel:hover {
+            background: #3a4a66;
+        }
+
+        select.dup {
+            background: #fee2e2 !important;
+            color: #991b1b !important;
+            border-radius: 4px;
+        }
+        body.dark select.dup {
+            background: #451a1a !important;
+            color: #fca5a5 !important;
+        }
+
+        body.dark .client-master-content::-webkit-scrollbar-track {
+            background: #253247;
+            border-radius: 10px;
+        }
+        body.dark .client-master-content::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 10px;
+        }
+        body.dark .client-master-content::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+
+        .color-picker-container {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .color-picker-input {
+            width: 60px;
+            height: 42px;
+            border: 1px solid #d8dfe9;
+            border-radius: 8px;
+            cursor: pointer;
+            padding: 2px;
+        }
+
+        .color-picker-input:hover {
+            border-color: #3b7cff;
+            box-shadow: 0 0 0 3px rgba(59, 124, 255, 0.1);
+        }
+
+        .color-preview-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #64748b;
+            min-width: 120px;
+        }
+
+        .color-palette-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(32px, 1fr));
+            gap: 6px;
+            padding-top: 8px;
+            padding-bottom: 8px;
+        }
+
+        .color-palette-btn {
+            width: 32px;
+            height: 32px;
+            border: 2px solid transparent;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .color-palette-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .color-palette-btn.selected {
+            border-color: #0b1a33;
+            box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #0b1a33;
+        }
+
+        body.dark .color-palette-btn.selected {
+            box-shadow: 0 0 0 2px #1e293b, 0 0 0 4px #ffffff;
+        }
+
+        body.dark .color-picker-input {
+            background: #131f37;
+            border-color: #2d3a52;
+        }
+
+        body.dark .color-picker-input:hover {
+            border-color: #3b7cff;
+        }
+
+        body.dark .color-preview-label {
+            color: #cbd5e1;
+        }
+
+        .client-row-colored td {
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .client-row-colored select {
+            color: inherit;
+        }
+
+        .client-row-colored select option {
+            color: #1e293b;
+            background: #ffffff;
+        }
+
+        body.dark .client-row-colored select option {
+            color: #e9edf4;
+            background: #1e293b;
+        }
+
+        .color-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 8px;
+            background: var(--indicator-bg, #ffffff);
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .color-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+            background-color: var(--indicator-color, #3b7cff);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-edit-color {
+            padding: 5px 12px;
+            background: #9b59b6;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 600;
+            transition: 0.15s;
+            margin-left: 4px;
+        }
+
+        .btn-edit-color:hover {
+            background: #8e44ad;
+        }
+
+        body.dark .btn-edit-color {
+            background: #9b59b6;
+        }
+
+        body.dark .btn-edit-color:hover {
+            background: #a76db0;
+        }
+
+        /* ── Scrollable container fix ── */
+        .dashboard-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ── Loading / status indicator ── */
+        .status-badge {
+            font-size: 11px;
+            color: #94a3b8;
+            background: #f1f4f9;
+            padding: 4px 12px;
+            border-radius: 12px;
+            white-space: nowrap;
+        }
+        body.dark .status-badge {
+            background: #253247;
+            color: #94a3b8;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ─── HEADER ─── -->
+    <div class="page-header">
+        <h2>📋 CCTV Monitoring Dashboard <span id="currentDateDisplay"></span></h2>
+        <div id="authButtons">
+            <button class="btn-login" onclick="openLoginModal()">👨‍💼 Leader Login</button>
+        </div>
+    </div>
+
+    <!-- ─── PAGE SWITCHER ─── -->
+    <div class="page-switcher">
+        <button class="page-btn active" data-page="unit1">Unit 1 – Page 1</button>
+        <button class="page-btn" data-page="unit2">Unit 2 – Page 2</button>
+    </div>
+
+    <!-- ─── DASHBOARD BODY ─── -->
+    <div class="dashboard-body">
+
+        <!-- ════════════ PAGE 1 – UNIT 1 ════════════ -->
+        <div id="page-unit1" class="page-container active">
+            <div class="top-bar">
+                <div class="left-group">
+                    <input type="text" class="globalSearch" placeholder="Search all clients …" onkeyup="globalSearch(this)" />
+                    <span class="status-badge" id="statusBadge1">📌 Ready</span>
+                </div>
+                <div class="right-group">
+                    <div class="dateBox"></div>
+                </div>
+            </div>
+
+            <div class="toolbar">
+                <button class="btn-clear admin-only" onclick="clearAll()">🧹 Clear All</button>
+                <button class="btn-excel admin-only" onclick="exportExcel()">📥 Excel</button>
+                <button class="btn-report admin-only" onclick="generateReport()">📊 Report</button>
+                <button class="btn-dark" onclick="toggleTheme()">🌙 Dark</button>
+                <button class="btn-add admin-only" onclick="openAddClientModal()">➕ Add Client</button>
+                <button class="btn-master admin-only" onclick="openClientMasterModal()">📋 Client Master</button>
+                <button class="btn-logout admin-only" onclick="logout()" style="display:none;">🚪 Logout</button>
+            </div>
+
+            <div class="topbar">
+                <div class="card accent-blue">
+                    <h3>Total Cameras</h3>
+                    <p class="totalCameras">0</p>
+                </div>
+                <div class="card accent-purple">
+                    <h3>Total Clients</h3>
+                    <p class="totalClients">0</p>
+                </div>
+            </div>
+
+            <div class="container"></div>
+        </div>
+
+        <!-- ════════════ PAGE 2 – UNIT 2 ════════════ -->
+        <div id="page-unit2" class="page-container">
+            <div class="top-bar">
+                <div class="left-group">
+                    <input type="text" class="globalSearch" placeholder="Search all clients …" onkeyup="globalSearch(this)" />
+                    <span class="status-badge" id="statusBadge2">📌 Ready</span>
+                </div>
+                <div class="right-group">
+                    <div class="dateBox"></div>
+                </div>
+            </div>
+
+            <div class="toolbar">
+                <button class="btn-clear admin-only" onclick="clearAll()">🧹 Clear All</button>
+                <button class="btn-excel admin-only" onclick="exportExcel()">📥 Excel</button>
+                <button class="btn-report admin-only" onclick="generateReport()">📊 Report</button>
+                <button class="btn-dark" onclick="toggleTheme()">🌙 Dark</button>
+                <button class="btn-add admin-only" onclick="openAddClientModal()">➕ Add Client</button>
+                <button class="btn-master admin-only" onclick="openClientMasterModal()">📋 Client Master</button>
+                <button class="btn-logout admin-only" onclick="logout()" style="display:none;">🚪 Logout</button>
+            </div>
+
+            <div class="topbar">
+                <div class="card accent-blue">
+                    <h3>Total Cameras</h3>
+                    <p class="totalCameras">0</p>
+                </div>
+                <div class="card accent-purple">
+                    <h3>Total Clients</h3>
+                    <p class="totalClients">0</p>
+                </div>
+            </div>
+
+            <div class="container"></div>
+        </div>
+
+        <!-- ─── DATE TAB BAR (Excel/Google Sheets style) ─── -->
+        <div class="date-tab-bar-wrapper">
+            <span class="date-tab-label">📅 Sheets</span>
+            <div class="date-tab-bar" id="dateTabBar">
+                <div class="date-tabs" id="dateTabsContainer"></div>
+            </div>
+            <button class="date-tab-add admin-only" onclick="addNewDateTab()" title="Add new date (duplicates current)">+</button>
+            <button class="date-tab-add admin-only" onclick="goToToday()" style="background:#2563eb;font-size:12px;padding:8px 14px;min-width:auto;" title="Go to today">📆 Today</button>
+        </div>
+
+    </div>
+
+    <!-- ════════════ ADD / EDIT CLIENT MODAL ════════════ -->
+    <div id="addClientModal" class="modal">
+        <div class="client-modal-content">
+            <div class="client-modal-header">
+                <h2 id="modalTitle">Add Client</h2>
+                <span class="client-close" onclick="closeAddClientModal()">&times;</span>
+            </div>
+            <form id="clientForm" onsubmit="return false;">
+                <div class="form-group">
+                    <label for="clientName">Client Name *</label>
+                    <input type="text" id="clientName" placeholder="e.g. Dunkin Company" required />
+                    <div class="error"></div>
+                </div>
+                <div class="form-group">
+                    <label for="clientCameras">Cameras *</label>
+                    <input type="number" id="clientCameras" placeholder="e.g. 50" min="1" required />
+                    <div class="error"></div>
+                </div>
+                <div class="form-group">
+                    <label for="clientShift">Shift *</label>
+                    <input type="text" id="clientShift" placeholder="e.g. 24 Hours" required />
+                    <div class="error"></div>
+                </div>
+                <div class="form-group">
+                    <label for="clientVMS">VMS *</label>
+                    <input type="text" id="clientVMS" placeholder="e.g. GuardStation" required />
+                    <div class="error"></div>
+                </div>
+                <div class="form-group">
+                    <label for="clientColor">Client Color</label>
+                    <div class="color-picker-container">
+                        <input type="color" id="clientColor" class="color-picker-input" value="#3b7cff" />
+                        <span class="color-preview-label" id="colorPreviewLabel">Professional Blue</span>
+                    </div>
+                    <div class="color-palette-grid"></div>
+                </div>
+                <div class="modal-buttons">
+                    <button type="button" class="modal-btn btn-cancel" onclick="closeAddClientModal()">Cancel</button>
+                    <button type="button" class="modal-btn btn-save" onclick="saveClient()">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ════════════ CLIENT MASTER MODAL ════════════ -->
+    <div id="clientMasterModal" class="modal">
+        <div class="client-master-content">
+            <div class="client-master-header">
+                <h2>📋 Client Master</h2>
+                <span class="client-master-close" onclick="closeClientMasterModal()">&times;</span>
+            </div>
+
+            <div class="master-toolbar">
+                <input type="text" id="masterSearch" class="master-search" placeholder="🔍 Search client …" onkeyup="filterClientMasterTable()" />
+                <button class="master-btn master-btn-export admin-only" onclick="exportClients()">📥 Export CSV</button>
+                <button class="master-btn master-btn-import admin-only" onclick="triggerImport()">📤 Import CSV</button>
+                <input type="file" id="importFile" accept=".csv" onchange="importClients(event)" />
+            </div>
+
+            <div class="stats-box">
+                <div class="stat-item">
+                    <label>Total Clients</label>
+                    <value id="totalClientsCount">0</value>
+                </div>
+            </div>
+
+            <div class="master-table-container">
+                <table class="master-table">
+                    <thead>
+                        <tr>
+                            <th style="width:5%;">#</th>
+                            <th style="width:25%;">Client Name</th>
+                            <th style="width:12%;">Cameras</th>
+                            <th style="width:20%;">Shift</th>
+                            <th style="width:13%;">VMS</th>
+                            <th style="width:15%;">Color</th>
+                            <th style="width:10%;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="masterTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ════════════ LOGIN MODAL ════════════ -->
+    <div id="loginModal" class="modal">
+        <div class="login-modal-content">
+            <div class="login-modal-header">
+                <h2>👨‍💼 Leader Login</h2>
+                <span class="login-close" onclick="closeLoginModal()">&times;</span>
+            </div>
+            <form id="loginForm" onsubmit="return handleLogin(event);">
+                <div class="form-group">
+                    <label for="loginUsername">Username</label>
+                    <input type="text" id="loginUsername" placeholder="Enter username" value="admin" required />
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" placeholder="Enter password" required />
+                </div>
+                <div id="loginError" class="login-error">Invalid username or password. Please try again.</div>
+                <button type="submit" class="modal-btn btn-login-submit">🔐 Login</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+    </script>
+
+    <script>
+        const SUPABASE_URL = 'https://thlzkbpekpxhkxmgnyim.supabase.co';
+        const SUPABASE_KEY = window.CCTV_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRobHprYnBla3B4aGt4bWdueWltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcyMDc0NzUsImV4cCI6MjEwMjc4MzQ3NX0.MJ-XVGp7M9X947SW3fFugwofsqC-fsntZCHHyiJh1dg';
+        const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  MODAL STACK MANAGER (ENTERPRISE GRADE)
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        class ModalStackManager {
+            constructor(baseZIndex = 1000) {
+                this.stack = [];
+                this.baseZIndex = baseZIndex;
+                this.increment = 100;
+                this.focusTraps = new Map();
+            }
+
+            open(modalId, options = {}) {
+                const modalElement = document.getElementById(modalId);
+                if (!modalElement) {
+                    console.error(`Modal not found: ${modalId}`);
+                    return;
+                }
+
+                const alreadyOpen = this.stack.find(m => m.id === modalId);
+                if (alreadyOpen) {
+                    this.bringToFront(modalId);
+                    return;
+                }
+
+                if (this.stack.length > 0) {
+                    const prevModal = this.stack[this.stack.length - 1];
+                    this.setBackdropVisibility(prevModal.id, false);
+                }
+
+                const zIndex = this.baseZIndex + (this.stack.length * this.increment);
+
+                const modalInfo = {
+                    id: modalId,
+                    element: modalElement,
+                    zIndex: zIndex,
+                    parentId: options.parentId || null,
+                    onClose: options.onClose || null
+                };
+
+                this.stack.push(modalInfo);
+                modalElement.style.zIndex = zIndex;
+                modalElement.style.display = 'block';
+                modalElement.classList.add('modal-open');
+                this.setBackdropVisibility(modalId, true);
+                this.createFocusTrap(modalId);
+                this.disableBodyScroll();
+
+                if (options.onOpen) {
+                    options.onOpen();
+                }
+            }
+
+            close(modalId, shouldRestore = true) {
+                const index = this.stack.findIndex(m => m.id === modalId);
+                if (index === -1) {
+                    console.warn(`Modal not in stack: ${modalId}`);
+                    return;
+                }
+
+                const modalInfo = this.stack[index];
+                const modalElement = modalInfo.element;
+
+                if (modalInfo.onClose) {
+                    modalInfo.onClose();
+                }
+
+                this.stack.splice(index, 1);
+                modalElement.style.display = 'none';
+                modalElement.classList.remove('modal-open');
+                this.setBackdropVisibility(modalId, false);
+                this.removeFocusTrap(modalId);
+
+                if (shouldRestore && this.stack.length > 0) {
+                    const prevModal = this.stack[this.stack.length - 1];
+                    this.setBackdropVisibility(prevModal.id, true);
+                    this.createFocusTrap(prevModal.id);
+                }
+
+                if (this.stack.length === 0) {
+                    this.enableBodyScroll();
+                }
+            }
+
+            closeAll() {
+                while (this.stack.length > 0) {
+                    const modalInfo = this.stack[this.stack.length - 1];
+                    this.close(modalInfo.id, false);
+                }
+                this.enableBodyScroll();
+            }
+
+            bringToFront(modalId) {
+                const index = this.stack.findIndex(m => m.id === modalId);
+                if (index === -1) return;
+
+                const [modalInfo] = this.stack.splice(index, 1);
+                this.stack.push(modalInfo);
+
+                this.stack.forEach((modal, i) => {
+                    const zIndex = this.baseZIndex + (i * this.increment);
+                    modal.element.style.zIndex = zIndex;
+                    modal.zIndex = zIndex;
+                });
+            }
+
+            setBackdropVisibility(modalId, isVisible) {
+                const modalElement = document.getElementById(modalId);
+                if (!modalElement) return;
+
+                if (isVisible) {
+                    modalElement.classList.add('modal-backdrop-visible');
+                } else {
+                    modalElement.classList.remove('modal-backdrop-visible');
+                }
+            }
+
+            createFocusTrap(modalId) {
+                const modalElement = document.getElementById(modalId);
+                if (!modalElement) return;
+
+                const focusableElements = modalElement.querySelectorAll(
+                    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+                );
+
+                if (focusableElements.length === 0) return;
+
+                const firstElement = focusableElements[0];
+                const lastElement = focusableElements[focusableElements.length - 1];
+
+                const handleKeyDown = (e) => {
+                    if (e.key !== 'Tab') return;
+
+                    if (e.shiftKey) {
+                        if (document.activeElement === firstElement) {
+                            e.preventDefault();
+                            lastElement.focus();
+                        }
+                    } else {
+                        if (document.activeElement === lastElement) {
+                            e.preventDefault();
+                            firstElement.focus();
+                        }
+                    }
+                };
+
+                modalElement.addEventListener('keydown', handleKeyDown);
+                this.focusTraps.set(modalId, { handler: handleKeyDown, element: modalElement });
+                firstElement.focus();
+            }
+
+            removeFocusTrap(modalId) {
+                const focusTrap = this.focusTraps.get(modalId);
+                if (!focusTrap) return;
+
+                focusTrap.element.removeEventListener('keydown', focusTrap.handler);
+                this.focusTraps.delete(modalId);
+            }
+
+            disableBodyScroll() {
+                document.body.classList.add('modal-open');
+            }
+
+            enableBodyScroll() {
+                document.body.classList.remove('modal-open');
+            }
+
+            getStackSize() {
+                return this.stack.length;
+            }
+
+            isOpen(modalId) {
+                return this.stack.some(m => m.id === modalId);
+            }
+
+            getTopModal() {
+                return this.stack.length > 0 ? this.stack[this.stack.length - 1].id : null;
+            }
+        }
+
+        // ✅ Create global instance
+        const modalStack = new ModalStackManager(1000);
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  ROLE-BASED ACCESS CONTROL
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        let currentRole = 'employee';
+
+        function checkSession() {
+            const role = sessionStorage.getItem('dashboardRole');
+            if (role === 'leader') {
+                currentRole = 'leader';
+                applyRolePermissions();
+            } else {
+                currentRole = 'employee';
+                applyRolePermissions();
+            }
+        }
+
+        function applyRolePermissions() {
+            const isLeader = (currentRole === 'leader');
+
+            document.querySelectorAll('.admin-only').forEach(el => {
+                el.style.display = isLeader ? 'inline-flex' : 'none';
+            });
+
+            const authContainer = document.getElementById('authButtons');
+            if (isLeader) {
+                authContainer.innerHTML = `<button class="btn-logout" onclick="logout()">🚪 Logout</button>`;
+            } else {
+                authContainer.innerHTML =
+                `<button class="btn-login" onclick="openLoginModal()">👨‍💼 Leader Login</button>`;
+            }
+
+            document.querySelectorAll('select').forEach(sel => {
+                sel.disabled = !isLeader;
+            });
+
+            if (isLeader) {
+                applyColorsToDashboard();
+            }
+        }
+
+        function openLoginModal() {
+            document.getElementById('loginError').style.display = 'none';
+            modalStack.open("loginModal", {
+                parentId: null,
+                onOpen: () => {
+                    document.getElementById('loginUsername').focus();
+                }
+            });
+        }
+
+        function closeLoginModal() {
+            modalStack.close("loginModal", true);
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+
+            if (username === 'admin' && password === 'admin123') {
+                currentRole = 'leader';
+                sessionStorage.setItem('dashboardRole', 'leader');
+                closeLoginModal();
+                applyRolePermissions();
+                applyColorsToDashboard();
+                alert('✅ Login successful! You now have full access.');
+                return false;
+            } else {
+                document.getElementById('loginError').style.display = 'block';
+                document.getElementById('loginPassword').value = '';
+                document.getElementById('loginPassword').focus();
+                return false;
+            }
+        }
+
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                currentRole = 'employee';
+                sessionStorage.removeItem('dashboardRole');
+                modalStack.closeAll();
+                applyRolePermissions();
+                alert('✅ Logged out. Dashboard is now in Employee (View-Only) mode.');
+            }
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  CONFIG
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        const panelsUnit1 = [
+            "A1", "A2", "A3", "A4", "A5",
+            "B1", "B2", "B3", "B4", "B5",
+            "B6", "B7", "B8", "B9", "B10",
+            "B11", "B12", "R1", "R2", "R3"
+        ];
+
+        const panelsUnit2 = [
+            "D1", "D2", "D3", "D4", "D5",
+            "D6", "D7", "D8", "D9", "D10",
+            "E1", "E2", "E3", "E4", "E5",
+            "E6", "E7", "E8", "E9", "E10"
+        ];
+
+        const reportPanels = ["R1", "R2", "R3"];
+
+        const colorPalette = [
+            "#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA07A", "#98D8C8",
+            "#F7DC6F", "#BB8FCE", "#85C1E2", "#F8B739", "#52C7A1",
+            "#E74C3C", "#3498DB", "#2ECC71", "#F39C12", "#9B59B6"
+        ];
+
+        let clientColors = {};
+        const DEFAULT_CLIENT_COLOR = "#3b7cff";
+
+        const operatorsUnit1 = {
+            "A1": "Manas",
+            "A2": "Sourabh",
+            "A3": "Operator 3",
+            "A4": "Operator 4",
+            "A5": "Operator 5",
+            "B1": "Operator 6",
+            "B2": "Operator 7",
+            "B3": "Operator 8",
+            "B4": "Operator 9",
+            "B5": "Operator 10",
+            "B6": "Operator 11",
+            "B7": "Operator 12",
+            "B8": "Operator 13",
+            "B9": "Operator 14",
+            "B10": "Operator 15",
+            "B11": "Operator 16",
+            "B12": "Operator 17"
+        };
+
+        const operatorsUnit2 = {
+            "D1": "Operator 1",
+            "D2": "Operator 2",
+            "D3": "Operator 3",
+            "D4": "Operator 4",
+            "D5": "Operator 5",
+            "D6": "Operator 6",
+            "D7": "Operator 7",
+            "D8": "Operator 8",
+            "D9": "Operator 9",
+            "D10": "Operator 10",
+            "E1": "Operator 11",
+            "E2": "Operator 12",
+            "E3": "Operator 13",
+            "E4": "Operator 14",
+            "E5": "Operator 15",
+            "E6": "Operator 16",
+            "E7": "Operator 17",
+            "E8": "Operator 18",
+            "E9": "Operator 19",
+            "E10": "Operator 20"
+        };
+
+        const defaultClientData = {
+            "Abhinav Group": [22, "9 AM to 9 PM", "iVMS 4200"],
+            "ADM Autotech UNIT-4": [15, "9 AM to 6 PM", "iVMS 4200"],
+            "ADM Cryowest": [19, "9 AM to 6 PM", "iVMS 4200"],
+            "ADM engg": [16, "9 AM to 6 PM", "KVMS Pro Lite"],
+            "Advik Bangalore": [50, "6 PM to 6 AM", "iVMS 4200 VPN"],
+            "Advik Chakan P15": [64, "6 PM to 6 AM", "iVMS 4200 VPN"],
+            "Advik P44 Ambethan": [14, "6 PM to 6 AM", "iVMS 4200 VPN"],
+            "Advik Pantnagar": [50, "6 PM to 6 AM", "KVMS Pro Lite VPN"],
+            "Flash EV": [40, "9 AM to 6 PM", "Smart PSS"],
+            "Flash Forging": [19, "9 AM to 6 PM", "iVMS 4200"],
+            "Flash Machining": [54, "9 AM to 6 PM", "iVMS 4200"],
+            "FM Hospital": [8, "24 hours", "KVMS Pro Lite"],
+            "Forbes Marshall": [83, "4 PM to 8 AM", "iVMS 4200"],
+            "House of Armuse": [65, "10 AM to 8 PM", "iVMS 4200"],
+            "IWI Nashik": [43, "9 AM to 6 PM", "iVMS 4200"],
+            "Metalman Corp": [14, "9 AM to 6 PM", "iVMS 4200"],
+            "Natesan TS": [16, "9 AM to 6 PM", "Smart PSS"],
+            "Nayanta University": [50, "24 hours", "iVMS 4200"],
+            "Ozori": [55, "9 AM to 6 PM", "iVMS 4200"],
+            "Polymed": [100, "8 PM to 8 AM", "KVMS Pro"],
+            "Rama HO": [79, "9 AM to 9 PM", "Smart PSS"],
+            "Ranka Jewellers": [70, "10 AM to 10 PM", "iVMS 4200"],
+            "SKS Unit 3": [122, "Shift", "iVMS 4200"],
+            "Studds": [182, "9 AM to 6 PM", "iVMS 4200"],
+            "VTP Group": [139, "9 AM to 6 PM", "iVMS 4200"]
+        };
+
+        let clientData = {};
+        let editingClientName = null;
+        let currentPage = "unit1";
+        let lastChangedSelect = null;
+
+        // ─── APP UI SETTINGS – LOCALSTORAGE ONLY ───
+        // Dashboard/database data continues to use Supabase.
+        // UI preferences such as selectedDate/currentPage stay local.
+
+        async function getAppSetting(key, fallback = null) {
+            try {
+                const raw = localStorage.getItem(`cctv_${key}`);
+                if (raw === null) return fallback;
+                try {
+                    return JSON.parse(raw);
+                } catch (_) {
+                    return raw;
+                }
+            } catch (error) {
+                console.error(`Local app setting read error (${key}):`, error);
+                return fallback;
+            }
+        }
+
+        async function setAppSetting(key, value) {
+            try {
+                localStorage.setItem(`cctv_${key}`, JSON.stringify(value));
+                return true;
+            } catch (error) {
+                console.error(`Local app setting write error (${key}):`, error);
+                return false;
+            }
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  DATE TAB SYSTEM – FULLY SUPABASE
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        let currentDate = ''; // YYYY-MM-DD
+        let _isLoading = false; // prevents save during load
+
+        function getTodayStr() {
+            const d = new Date();
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function formatDisplayDate(dateStr) {
+            if (!dateStr) return '';
+            const parts = dateStr.split('-');
+            const year = parts[0];
+            const month = parseInt(parts[1], 10);
+            const day = parseInt(parts[2], 10);
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            return `${day} ${monthNames[month-1]} ${year}`;
+        }
+
+        let allDatesCache = [];
+
+        async function refreshAllDates() {
+            const { data, error } = await _sb
+                .from("cctv_data")
+                .select("date")
+                .order("date", { ascending: true });
+
+            if (error) {
+                console.error("Supabase dates error:", error);
+                allDatesCache = [];
+                return [];
+            }
+
+            allDatesCache = [
+                ...new Set((data || []).map(row => row.date))
+            ];
+
+            return allDatesCache;
+        }
+
+        function getAllDates() {
+            return allDatesCache;
+        }
+
+        function dateExists(dateStr) {
+            return allDatesCache.includes(dateStr);
+        }
+
+        function supabaseIsConfigured() {
+            return SUPABASE_KEY && SUPABASE_KEY !== 'YOUR_ANON_KEY';
+        }
+
+        function reportSupabaseError(context, error) {
+            console.error(`Supabase ${context} error:`, error);
+            updateStatus(`❌ ${context} failed`);
+        }
+
+        // ─── Helper: create an empty date by inserting a dummy row ───
+        async function createEmptyDate(dateStr) {
+            if (!dateStr) return false;
+            // Check if date already exists
+            if (dateExists(dateStr)) return true;
+
+            const { error } = await _sb
+                .from("cctv_data")
+                .insert([{
+                    date: dateStr,
+                    unit: "unit1",
+                    panel: "A1",
+                    row_index: 0,
+                    client_name: null,
+                    cameras: null,
+                    shift: null,
+                    vms: null
+                }]);
+
+            if (error) {
+                console.error("Failed to create empty date:", error);
+                return false;
+            }
+
+            await refreshAllDates();
+            return true;
+        }
+
+        // ─── DATE TAB RENDERING ───
+
+        function renderDateTabs() {
+            const container = document.getElementById('dateTabsContainer');
+            if (!container) return;
+            const dates = getAllDates();
+            container.innerHTML = '';
+
+            if (dates.length === 0) {
+                const placeholder = document.createElement('span');
+                placeholder.style.cssText =
+                    'color:#94a3b8;font-size:13px;padding:8px 12px;';
+                placeholder.textContent = 'No dates — click + to add';
+                container.appendChild(placeholder);
+                return;
+            }
+
+            // Show newest first (reverse order)
+            const reversed = dates.slice().reverse();
+
+            reversed.forEach(d => {
+                const btn = document.createElement('button');
+                btn.className = 'date-tab';
+                if (d === currentDate) btn.classList.add('active');
+                btn.setAttribute('data-date', d);
+                btn.textContent = formatDisplayDate(d);
+
+                if (dates.length > 1 && currentRole === 'leader') {
+                    const closeSpan = document.createElement('span');
+                    closeSpan.className = 'tab-close';
+                    closeSpan.textContent = '×';
+                    closeSpan.title = 'Delete this date';
+                    closeSpan.onclick = (e) => {
+                        e.stopPropagation();
+                        deleteDateTab(d);
+                    };
+                    btn.appendChild(closeSpan);
+                }
+
+                btn.onclick = () => {
+                    selectDate(d);
+                };
+
+                container.appendChild(btn);
+            });
+
+            const activeTab = container.querySelector('.date-tab.active');
+            if (activeTab) {
+                setTimeout(() => {
+                    activeTab.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+                }, 50);
+            }
+        }
+
+        // ─── DATE SELECTION ───
+
+        async function selectDate(dateStr) {
+            if (!dateStr) return;
+
+            _isLoading = true;
+            currentDate = dateStr;
+
+            const display = document.getElementById('currentDateDisplay');
+            if (display) display.textContent = formatDisplayDate(dateStr);
+
+            await setAppSetting("selectedDate", dateStr);
+
+            renderDateTabs();
+            await loadData();
+
+            calc();
+            applyColorsToDashboard();
+            _isLoading = false;
+
+            updateStatus('📌 Loaded: ' + formatDisplayDate(dateStr));
+        }
+
+        // ─── ADD NEW DATE TAB (COPIES FROM CURRENT) ───
+
+        async function addNewDateTab() {
+            if (currentRole !== 'leader') return;
+
+            await saveData();
+
+            const today = getTodayStr();
+            const userDate = prompt('Enter new date (YYYY-MM-DD) or leave blank for today:', today);
+            if (userDate === null) return;
+
+            let dateStr = userDate.trim();
+            if (!dateStr) dateStr = today;
+
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+                alert('❌ Invalid date format. Please use YYYY-MM-DD (e.g. 2026-08-21)');
+                return;
+            }
+
+            if (dateExists(dateStr)) {
+                await selectDate(dateStr);
+                return;
+            }
+
+            const sourceDate = currentDate && dateExists(currentDate) ? currentDate : null;
+            const created = await createDateFromSource(dateStr, sourceDate);
+
+            if (created) {
+                const sourceLabel = sourceDate ? formatDisplayDate(sourceDate) : 'empty';
+                alert(`✅ Date ${formatDisplayDate(dateStr)} created, copied from ${sourceLabel}.`);
+                await selectDate(dateStr);
+            } else {
+                alert('❌ Failed to create date. Please try again.');
+            }
+        }
+
+        // ─── DELETE DATE TAB – SUPABASE ONLY ───
+        async function deleteDateTab(dateStr) {
+            if (currentRole !== 'leader') return;
+            if (!dateStr) return;
+
+            await refreshAllDates();
+
+            if (!dateExists(dateStr)) {
+                console.warn(`Date ${dateStr} does not exist in cache`);
+                return;
+            }
+
+            const allDates = getAllDates();
+
+            if (allDates.length === 1 && allDates[0] === dateStr) {
+                alert('❌ Cannot delete the only date. Create a new one first.');
+                return;
+            }
+
+            if (!confirm(`🗑️ Delete sheet "${formatDisplayDate(dateStr)}"? This cannot be undone.`)) {
+                return;
+            }
+
+            let targetDate = null;
+            if (dateStr === currentDate) {
+                const remaining = allDates.filter(d => d !== dateStr);
+                if (remaining.length > 0) {
+                    targetDate = remaining[remaining.length - 1];
+                }
+            }
+
+            try {
+                const { error } = await _sb
+                    .from("cctv_data")
+                    .delete()
+                    .eq("date", dateStr);
+
+                if (error) {
+                    console.error("Supabase delete error:", error);
+                    alert(`❌ Failed to delete ${formatDisplayDate(dateStr)}. Please try again.`);
+                    return;
+                }
+
+                await refreshAllDates();
+
+                if (dateStr === currentDate && targetDate) {
+                    await selectDate(targetDate);
+                }
+
+                renderDateTabs();
+
+                if (!dateExists(currentDate)) {
+                    const remaining = getAllDates();
+                    if (remaining.length > 0) {
+                        await selectDate(remaining[remaining.length - 1]);
+                    } else {
+                        const today = getTodayStr();
+                        const created = await createEmptyDate(today);
+                        if (created) {
+                            await selectDate(today);
+                        } else {
+                            console.error("CRITICAL: No dates available and cannot create today");
+                            alert("❌ Critical error: No dates remain and today could not be created.");
+                        }
+                    }
+                }
+
+                alert(`✅ ${formatDisplayDate(dateStr)} deleted.`);
+            } catch (err) {
+                console.error("Unexpected error during deletion:", err);
+                alert(`❌ An unexpected error occurred while deleting ${formatDisplayDate(dateStr)}.`);
+            }
+        }
+
+        // ─── GO TO TODAY – SUPABASE ONLY ───
+        async function goToToday() {
+            const today = getTodayStr();
+
+            await refreshAllDates();
+
+            if (!dateExists(today)) {
+                const created = await createEmptyDate(today);
+                if (!created) {
+                    alert("❌ Could not create today's date. Please try again.");
+                    return;
+                }
+            }
+
+            await selectDate(today);
+        }
+
+        // ─── CREATE DATE FROM SOURCE (for copying) ───
+        async function createDateFromSource(dateStr, sourceDate) {
+            if (!dateStr) return false;
+
+            await refreshAllDates();
+            if (dateExists(dateStr)) return true;
+
+            let rowsToInsert = [];
+
+            if (sourceDate && dateExists(sourceDate)) {
+                const { data: sourceData, error } = await _sb
+                    .from("cctv_data")
+                    .select("date,unit,panel,row_index,client_name,cameras,shift,vms")
+                    .eq("date", sourceDate)
+                    .order("unit")
+                    .order("panel")
+                    .order("row_index");
+
+                if (error) {
+                    console.error("Source date load error:", error);
+                    return false;
+                }
+
+                rowsToInsert = (sourceData || []).map(row => ({
+                    date: dateStr,
+                    unit: row.unit,
+                    panel: row.panel,
+                    row_index: row.row_index,
+                    client_name: row.client_name,
+                    cameras: row.cameras,
+                    shift: row.shift,
+                    vms: row.vms
+                }));
+            }
+
+            if (rowsToInsert.length) {
+                const { error } = await _sb
+                    .from("cctv_data")
+                    .upsert(rowsToInsert, { onConflict: "date,unit,panel,row_index" });
+
+                if (error) {
+                    console.error("Create date error:", error);
+                    return false;
+                }
+            } else {
+                if (!(await createEmptyDate(dateStr))) return false;
+            }
+
+            await refreshAllDates();
+            return true;
+        }
+
+        function updateStatus(msg) {
+            document.querySelectorAll('.status-badge').forEach(el => {
+                el.textContent = msg;
+            });
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  CLIENT DATA Mgmt – SUPABASE (MIGRATED)
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        // Load clients from Supabase – seeds from defaultClientData if empty
+        async function initializeClientData() {
+            try {
+                const { data, error } = await _sb
+                    .from("cctv_clients")
+                    .select("*")
+                    .order("name", { ascending: true });
+
+                if (error) {
+                    console.error("Error loading clients:", error);
+                    alert("❌ Could not load client data. Please refresh.");
+                    return;
+                }
+
+                clientData = {};
+                clientColors = {};
+
+                if (data && data.length > 0) {
+                    // Use data from Supabase
+                    data.forEach(row => {
+                        clientData[row.name] = [row.cameras, row.shift, row.vms];
+                        clientColors[row.name] = row.color || DEFAULT_CLIENT_COLOR;
+                    });
+                } else {
+                    // No clients in Supabase – seed from defaultClientData
+                    for (const [name, [cameras, shift, vms]] of Object.entries(defaultClientData)) {
+                        const color = DEFAULT_CLIENT_COLOR;
+                        const { error: insertError } = await _sb
+                            .from("cctv_clients")
+                            .insert({
+                                name: name,
+                                cameras: cameras,
+                                shift: shift,
+                                vms: vms,
+                                color: color
+                            });
+                        if (insertError) {
+                            console.error(`Error seeding client ${name}:`, insertError);
+                        } else {
+                            clientData[name] = [cameras, shift, vms];
+                            clientColors[name] = color;
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error("Unexpected error in initializeClientData:", err);
+                alert("❌ Failed to initialise client data.");
+            }
+        }
+
+        // Save a single client (add or update) to Supabase
+        async function saveClientToSupabase(name, cameras, shift, vms, color) {
+            const { error } = await _sb
+                .from("cctv_clients")
+                .upsert({
+                    name: name,
+                    cameras: cameras,
+                    shift: shift,
+                    vms: vms,
+                    color: color
+                }, { onConflict: "name" });
+
+            if (error) {
+                console.error("Error saving client:", error);
+                alert(`❌ Failed to save client "${name}". Please try again.`);
+                return false;
+            }
+            return true;
+        }
+
+        // Delete a client from Supabase
+        async function deleteClientFromSupabase(name) {
+            const { error } = await _sb
+                .from("cctv_clients")
+                .delete()
+                .eq("name", name);
+
+            if (error) {
+                console.error("Error deleting client:", error);
+                alert(`❌ Failed to delete client "${name}". Please try again.`);
+                return false;
+            }
+            return true;
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  CLIENT COLOR MANAGEMENT
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        function getClientColor(clientName) {
+            return clientColors[clientName] || DEFAULT_CLIENT_COLOR;
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  MODAL – ADD / EDIT
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        function openAddClientModal() {
+            if (currentRole !== 'leader') return;
+            editingClientName = null;
+            document.getElementById("modalTitle").innerText = "Add Client";
+            document.getElementById("clientForm").reset();
+            document.getElementById("clientColor").value = DEFAULT_CLIENT_COLOR;
+            updateColorPreview(DEFAULT_CLIENT_COLOR);
+            generateColorPaletteButtons(DEFAULT_CLIENT_COLOR);
+
+            modalStack.open("addClientModal", {
+                parentId: null,
+                onOpen: () => {
+                    document.getElementById("clientName").focus();
+                }
+            });
+        }
+
+        function closeAddClientModal() {
+            editingClientName = null;
+            document.getElementById("clientForm").reset();
+            modalStack.close("addClientModal", true);
+        }
+
+        function validateClientForm() {
+            let isValid = true;
+            const name = document.getElementById("clientName").value.trim();
+            const cameras = document.getElementById("clientCameras").value.trim();
+            const shift = document.getElementById("clientShift").value.trim();
+            const vms = document.getElementById("clientVMS").value.trim();
+
+            document.querySelectorAll('.form-group .error').forEach(el => {
+                el.style.display = 'none';
+                el.innerText = '';
+            });
+
+            if (!name) {
+                showError('clientName', 'Client name is required');
+                isValid = false;
+            } else if (name.length < 3) {
+                showError('clientName', 'Client name must be at least 3 characters');
+                isValid = false;
+            }
+
+            if (!cameras) {
+                showError('clientCameras', 'Number of cameras is required');
+                isValid = false;
+            } else if (isNaN(cameras) || cameras < 1) {
+                showError('clientCameras', 'Must be a valid number greater than 0');
+                isValid = false;
+            }
+
+            if (!shift) {
+                showError('clientShift', 'Shift is required');
+                isValid = false;
+            }
+
+            if (!vms) {
+                showError('clientVMS', 'VMS is required');
+                isValid = false;
+            }
+
+            return isValid;
+        }
+
+        function showError(fieldId, message) {
+            const field = document.getElementById(fieldId);
+            const errorEl = field.parentElement.querySelector('.error');
+            if (errorEl) {
+                errorEl.innerText = message;
+                errorEl.style.display = 'block';
+            }
+        }
+
+        // SAVE CLIENT (Add or Edit) – uses Supabase
+        async function saveClient() {
+            if (currentRole !== 'leader') return;
+            if (!validateClientForm()) return;
+
+            const name = document.getElementById("clientName").value.trim();
+            const cameras = parseInt(document.getElementById("clientCameras").value.trim(), 10);
+            const shift = document.getElementById("clientShift").value.trim();
+            const vms = document.getElementById("clientVMS").value.trim();
+            const color = document.getElementById("clientColor").value;
+
+            if ((!editingClientName || editingClientName !== name) && clientData[name]) {
+                showError('clientName', 'Client name already exists');
+                return;
+            }
+
+            if (editingClientName && editingClientName !== name) {
+                const oldName = editingClientName;
+                if (!(await deleteClientFromSupabase(oldName))) return;
+                delete clientData[oldName];
+                delete clientColors[oldName];
+            }
+
+            if (!(await saveClientToSupabase(name, cameras, shift, vms, color))) return;
+
+            clientData[name] = [cameras, shift, vms];
+            clientColors[name] = color;
+
+            refreshAllDropdowns();
+            updateDropdowns();
+            checkDuplicate();
+            calc();
+            applyColorsToDashboard();
+            renderClientMasterTable();
+            closeAddClientModal();
+
+            alert(`✅ Client "${name}" saved with color ${color}.`);
+        }
+
+        // Edit Client – opens modal with existing data
+        function editClient(clientName) {
+            if (currentRole !== 'leader') return;
+            if (!clientData[clientName]) {
+                console.error('Client data not found for:', clientName);
+                return;
+            }
+
+            editingClientName = clientName;
+            const d = clientData[clientName];
+            document.getElementById("modalTitle").innerText = "Edit Client";
+            document.getElementById("clientName").value = clientName;
+            document.getElementById("clientCameras").value = d[0];
+            document.getElementById("clientShift").value = d[1];
+            document.getElementById("clientVMS").value = d[2];
+            const clientColor = getClientColor(clientName);
+            document.getElementById("clientColor").value = clientColor;
+            updateColorPreview(clientColor);
+            generateColorPaletteButtons(clientColor);
+
+            modalStack.open("addClientModal", {
+                parentId: "clientMasterModal",
+                onClose: () => {
+                    if (!modalStack.isOpen("clientMasterModal")) {
+                        renderClientMasterTable();
+                        modalStack.open("clientMasterModal", {
+                            parentId: null
+                        });
+                    }
+                }
+            });
+        }
+
+        // Delete Client – uses Supabase
+        async function deleteClient(clientName) {
+            if (currentRole !== 'leader') return;
+            if (!confirm(`🗑️ Delete "${clientName}"?`)) return;
+
+            const deleted = await deleteClientFromSupabase(clientName);
+            if (!deleted) return;
+
+            // Remove from local objects
+            delete clientData[clientName];
+            delete clientColors[clientName];
+
+            // Clear any dropdowns using this client
+            document.querySelectorAll("select").forEach(sel => {
+                if (sel.value === clientName) {
+                    sel.value = "";
+                    const row = sel.closest("tr");
+                    if (row) {
+                        row.querySelectorAll("input").forEach(inp => inp.value = "");
+                        row.querySelectorAll("td").forEach(td => {
+                            td.style.backgroundColor = '';
+                            td.style.color = '';
+                        });
+                        row.classList.remove("client-row-colored");
+                    }
+                }
+            });
+
+            refreshAllDropdowns();
+            updateDropdowns();
+            calc();
+            renderClientMasterTable();
+            alert(`✅ "${clientName}" deleted.`);
+        }
+
+        // ─── COLOR PALETTE HELPERS ───
+        function generateColorPaletteButtons(currentColor) {
+            const grid = document.querySelector(".color-palette-grid");
+            grid.innerHTML = "";
+            let found = false;
+
+            colorPalette.forEach(color => {
+                const btn = document.createElement("button");
+                btn.type = "button";
+                btn.className = "color-palette-btn";
+                btn.style.backgroundColor = color;
+                if (color.toLowerCase() === currentColor.toLowerCase()) {
+                    btn.classList.add("selected");
+                    found = true;
+                }
+                btn.onclick = (e) => {
+                    e.preventDefault();
+                    document.getElementById("clientColor").value = color;
+                    updateColorPreview(color);
+                    generateColorPaletteButtons(color);
+                };
+                grid.appendChild(btn);
+            });
+
+            if (!found) {
+                const customBtn = document.createElement("button");
+                customBtn.type = "button";
+                customBtn.className = "color-palette-btn selected";
+                customBtn.style.backgroundColor = currentColor;
+                customBtn.style.border = "2px solid #0b1a33";
+                customBtn.title = "Custom Color";
+                customBtn.onclick = () => {
+                    document.getElementById("clientColor").value = currentColor;
+                    updateColorPreview(currentColor);
+                    generateColorPaletteButtons(currentColor);
+                };
+                grid.appendChild(customBtn);
+
+                const label = document.createElement("span");
+                label.textContent = "Custom";
+                label.style.fontSize = "10px";
+                label.style.color = "#64748b";
+                label.style.padding = "4px 8px";
+                grid.appendChild(label);
+            }
+        }
+
+        function updateColorPreview(hexColor) {
+            const colorNames = {
+                "#FF6B6B": "Vibrant Red",
+                "#4ECDC4": "Turquoise",
+                "#45B7D1": "Sky Blue",
+                "#FFA07A": "Light Salmon",
+                "#98D8C8": "Mint Green",
+                "#F7DC6F": "Golden Yellow",
+                "#BB8FCE": "Purple",
+                "#85C1E2": "Soft Blue",
+                "#F8B739": "Warm Orange",
+                "#52C7A1": "Emerald Green",
+                "#E74C3C": "Dark Red",
+                "#3498DB": "Professional Blue",
+                "#2ECC71": "Fresh Green",
+                "#F39C12": "Deep Orange",
+                "#9B59B6": "Violet",
+                "#3b7cff": "Dashboard Blue"
+            };
+            const colorName = colorNames[hexColor.toUpperCase()] || hexColor;
+            document.getElementById("colorPreviewLabel").textContent = colorName;
+        }
+
+        function applyColorsToDashboard() {
+            document.querySelectorAll("select").forEach(select => {
+                const clientName = select.value;
+                const row = select.closest("tr");
+                if (!row) return;
+
+                if (clientName && clientData[clientName]) {
+                    const color = getClientColor(clientName);
+                    const textColor = getContrastTextColor(color);
+
+                    row.querySelectorAll("td").forEach(td => {
+                        td.style.backgroundColor = color;
+                        td.style.color = textColor;
+                    });
+
+                    const sel = row.querySelector("select");
+                    if (sel) {
+                        sel.style.color = textColor;
+                        sel.querySelectorAll("option").forEach(opt => {
+                            opt.style.color = '#1e293b';
+                            opt.style.background = '#ffffff';
+                        });
+                        sel.disabled = (currentRole !== 'leader');
+                    }
+
+                    row.querySelectorAll("input[readonly]").forEach(inp => {
+                        inp.style.color = textColor;
+                    });
+
+                    row.classList.add("client-row-colored");
+                } else {
+                    row.querySelectorAll("td").forEach(td => {
+                        td.style.backgroundColor = '';
+                        td.style.color = '';
+                    });
+                    const sel = row.querySelector("select");
+                    if (sel) {
+                        sel.style.color = '';
+                        sel.disabled = (currentRole !== 'leader');
+                    }
+                    row.querySelectorAll("input[readonly]").forEach(inp => {
+                        inp.style.color = '';
+                    });
+                    row.classList.remove("client-row-colored");
+                }
+            });
+        }
+
+        function getContrastTextColor(hex) {
+            const rgb = hexToRgb(hex);
+            const luminance = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
+            return luminance > 0.55 ? '#1e293b' : '#ffffff';
+        }
+
+        function hexToRgb(hex) {
+            if (hex.length === 4) {
+                hex = '#' + hex[1] + hex[1] + hex[2] + hex[2] + hex[3] + hex[3];
+            }
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16)
+            } : { r: 59, g: 124, b: 255 };
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  CLIENT MASTER MODAL
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        function openClientMasterModal() {
+            if (currentRole !== 'leader') return;
+            renderClientMasterTable();
+
+            modalStack.open("clientMasterModal", {
+                parentId: null,
+                onClose: () => {
+                    document.getElementById("masterSearch").value = "";
+                }
+            });
+
+            document.getElementById("masterSearch").value = "";
+        }
+
+        function closeClientMasterModal() {
+            modalStack.close("clientMasterModal", true);
+        }
+
+        function renderClientMasterTable() {
+            const tbody = document.getElementById("masterTableBody");
+            tbody.innerHTML = "";
+            const sorted = Object.keys(clientData).sort();
+            document.getElementById("totalClientsCount").innerText = sorted.length;
+            sorted.forEach((name, i) => {
+                const d = clientData[name];
+                const clientColor = getClientColor(name);
+                const textColor = getContrastTextColor(clientColor);
+                const tr = document.createElement("tr");
+                tr.style.backgroundColor = clientColor;
+                tr.style.color = textColor;
+                tr.innerHTML = `
+                        <td>${i + 1}</td>
+                        <td>${name}</td>
+                        <td>${d[0]}</td>
+                        <td>${d[1]}</td>
+                        <td>${d[2]}</td>
+                        <td>
+                            <div class="color-indicator" style="background: ${clientColor}; color: ${textColor};">
+                                <div class="color-dot" style="background-color: ${clientColor};"></div>
+                                <span>${clientColor}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn-edit-client" data-client="${name.replace(/"/g, '&quot;')}">✏ Edit</button>
+                                <button class="btn-delete-client" data-client="${name.replace(/"/g, '&quot;')}">🗑 Delete</button>
+                            </div>
+                        </td>
+                    `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Event delegation for edit/delete buttons in master table
+        document.addEventListener('click', function(e) {
+            const editBtn = e.target.closest('.btn-edit-client');
+            if (editBtn) {
+                const clientName = editBtn.getAttribute('data-client');
+                if (clientName) {
+                    editClient(clientName);
+                }
+                e.preventDefault();
+            }
+
+            const deleteBtn = e.target.closest('.btn-delete-client');
+            if (deleteBtn) {
+                const clientName = deleteBtn.getAttribute('data-client');
+                if (clientName) {
+                    deleteClient(clientName);
+                }
+                e.preventDefault();
+            }
+        });
+
+        function filterClientMasterTable() {
+            const val = document.getElementById("masterSearch").value.toLowerCase();
+            document.querySelectorAll("#masterTableBody tr").forEach(row => {
+                row.style.display = row.innerText.toLowerCase().includes(val) ? "" : "none";
+            });
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  EXPORT / IMPORT CSV (uses in-memory clientData)
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        function exportClients() {
+            if (currentRole !== 'leader') return;
+            let csv = "Client Name,Cameras,Shift,VMS,Color\n";
+            Object.keys(clientData).sort().forEach(name => {
+                const d = clientData[name];
+                const color = getClientColor(name);
+                csv += `"${name}",${d[0]},"${d[1]}","${d[2]}","${color}"\n`;
+            });
+            const blob = new Blob([csv], { type: "text/csv" });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = "Clients_" + new Date().toISOString().split("T")[0] + ".csv";
+            a.click();
+            alert("✅ Clients exported with colors.");
+        }
+
+        function triggerImport() {
+            if (currentRole !== 'leader') return;
+            document.getElementById("importFile").click();
+        }
+
+        // Import CSV – uses Supabase upsert for each client
+        async function importClients(event) {
+            if (currentRole !== 'leader') return;
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const lines = e.target.result.split("\n");
+                let count = 0;
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+                    const match = line.match(/"([^"]*)"|([^,]+)/g);
+                    if (!match || match.length < 4) continue;
+                    const name = match[0].replace(/"/g, "").trim();
+                    const cameras = parseInt(match[1].replace(/"/g, "").trim());
+                    const shift = match[2].replace(/"/g, "").trim();
+                    const vms = match[3].replace(/"/g, "").trim();
+                    const color = match[4] ? match[4].replace(/"/g, "").trim() : DEFAULT_CLIENT_COLOR;
+                    if (name && cameras) {
+                        const saved = await saveClientToSupabase(name, cameras, shift, vms, color);
+                        if (saved) {
+                            clientData[name] = [cameras, shift, vms];
+                            clientColors[name] = color;
+                            count++;
+                        }
+                    }
+                }
+                refreshAllDropdowns();
+                updateDropdowns();
+                calc();
+                renderClientMasterTable();
+                applyColorsToDashboard();
+                alert(`✅ ${count} clients imported with colors.`);
+            };
+            reader.readAsText(file);
+            event.target.value = "";
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  DROPDOWN HELPERS
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        function refreshAllDropdowns() {
+            document.querySelectorAll("select").forEach(sel => {
+                const current = sel.value;
+                let opt = `<option value="">Select</option>`;
+                Object.keys(clientData).sort().forEach(c => {
+                    opt += `<option>${c}</option>`;
+                });
+                sel.innerHTML = opt;
+                sel.value = current;
+                sel.disabled = (currentRole !== 'leader');
+            });
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  BUILD DASHBOARD
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        function buildDashboard(pageId, panels, operators) {
+            const dashboard = document.querySelector(`#${pageId} .container`);
+            dashboard.innerHTML = "";
+
+            panels.forEach(p => {
+                const div = document.createElement("div");
+                div.className = "box";
+                if (reportPanels.includes(p)) {
+                    div.classList.add("report-panel");
+                } else {
+                    div.classList.add("normal-panel");
+                }
+                div.innerHTML = `
+                        <div class="section">${p}</div>
+                        <input class="search" placeholder="Search …" onkeyup="filterOptions(this)" />
+                        <table>
+                            <thead><tr>
+                                <th style="width:40%;">Clients</th>
+                                <th style="width:13%;">Cam</th>
+                                <th style="width:28%;">Shift</th>
+                                <th style="width:19%;">VMS</th>
+                            </tr></thead>
+                            <tbody id="${p}Body"></tbody>
+                            <tbody class="lightsnap">
+                                <tr><td colspan="4">LightSnap</td></tr>
+                            </tbody>
+                            <tbody id="${p}Light"></tbody>
+                            <tbody class="total">
+                                <tr>
+                                    <td>Total</td>
+                                    <td id="total${p}">0</td>
+                                    <td colspan="2">${operators[p] || ''}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    `;
+                dashboard.appendChild(div);
+            });
+
+            panels.forEach(p => {
+                for (let i = 0; i < 6; i++) createRow(document.getElementById(p + "Body"));
+                createRow(document.getElementById(p + "Light"));
+            });
+        }
+
+        function createRow(tbody) {
+            const tr = document.createElement("tr");
+            const td1 = document.createElement("td");
+            const select = document.createElement("select");
+            select.onchange = async () => {
+                await fill(select);
+            };
+            let opt = `<option value="">Select</option>`;
+            Object.keys(clientData).sort().forEach(c => {
+                opt += `<option>${c}</option>`;
+            });
+            select.innerHTML = opt;
+            select.disabled = (currentRole !== 'leader');
+            td1.appendChild(select);
+
+            const td2 = document.createElement("td");
+            const cam = document.createElement("input");
+            cam.readOnly = true;
+            const td3 = document.createElement("td");
+            const shift = document.createElement("input");
+            shift.readOnly = true;
+            const td4 = document.createElement("td");
+            const vms = document.createElement("input");
+            vms.readOnly = true;
+
+            td2.appendChild(cam);
+            td3.appendChild(shift);
+            td4.appendChild(vms);
+            tr.append(td1, td2, td3, td4);
+            tbody.appendChild(tr);
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  CORE LOGIC
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        async function fill(select) {
+            if (currentRole !== 'leader') return false;
+            if (_isLoading || !currentDate) return false;
+
+            const row = select.closest("tr");
+            if (!row) return false;
+
+            const d = clientData[select.value];
+
+            if (d) {
+                row.children[1].children[0].value = d[0] ?? '';
+                row.children[2].children[0].value = d[1] ?? '';
+                row.children[3].children[0].value = d[2] ?? '';
+            } else {
+                row.children[1].children[0].value = '';
+                row.children[2].children[0].value = '';
+                row.children[3].children[0].value = '';
+            }
+
+            applyColorsToDashboard();
+            updateDropdowns();
+            checkDuplicate();
+            calc();
+
+            // Save ONLY the row that was changed.
+            const tbody = row.closest('tbody');
+            if (!tbody || !tbody.id) return false;
+
+            const panel = tbody.id.replace(/Body$|Light$/, '');
+            const rowList = Array.from(document.querySelectorAll(
+                `#${panel}Body tr, #${panel}Light tr`
+            ));
+            const rowIndex = rowList.indexOf(row);
+
+            if (!panel || rowIndex < 0) return false;
+
+            const inputs = row.querySelectorAll('input');
+            const record = {
+                date: currentDate,
+                unit: currentPage,
+                panel,
+                row_index: rowIndex,
+                client_name: select.value || null,
+                cameras: inputs[0]?.value !== '' ? Number.parseInt(inputs[0].value, 10) : null,
+                shift: inputs[1]?.value || null,
+                vms: inputs[2]?.value || null
+            };
+
+            console.log('Saving changed row:', record);
+
+            // Mark only this row dirty, then flush the queued row saves.
+            markRowDirty(record);
+            const saved = await flushDirtyRows();
+
+            if (!saved) {
+                console.error('Supabase row save failed:', record);
+                return false;
+            }
+
+            lastChangedSelect = select;
+            updateStatus(`💾 Saved: ${select.value || 'Empty'}`);
+            return true;
+        }
+
+        function getActivePanels() {
+            return currentPage === "unit1" ? panelsUnit1 : panelsUnit2;
+        }
+
+        function calc() {
+            let grandTotal = 0;
+            let clients = 0;
+            const panels = getActivePanels();
+            panels.forEach(p => {
+                let sum = 0;
+                document.querySelectorAll(`#${p}Body input, #${p}Light input`).forEach((el, i) => {
+                    if (i % 3 === 0 && el.value) {
+                        sum += +el.value;
+                        clients++;
+                    }
+                });
+                const totalEl = document.getElementById("total" + p);
+                if (totalEl) totalEl.innerText = sum;
+                grandTotal += sum;
+            });
+
+            const activePageContainer = document.querySelector(".page-container.active");
+            if (activePageContainer) {
+                activePageContainer.querySelector(".totalCameras").innerText = grandTotal;
+                activePageContainer.querySelector(".totalClients").innerText = clients;
+            }
+        }
+
+        function filterOptions(input) {
+            const val = input.value.toLowerCase();
+            const selects = input.parentElement.querySelectorAll("select");
+            selects.forEach(sel => {
+                for (const opt of sel.options) {
+                    opt.style.display = opt.text.toLowerCase().includes(val) ? "" : "none";
+                }
+            });
+        }
+
+        function updateDropdowns() {
+            const selected = [];
+            document.querySelectorAll("select").forEach(sel => {
+                if (sel.value) selected.push(sel.value);
+            });
+            document.querySelectorAll("select").forEach(sel => {
+                const current = sel.value;
+                for (const opt of sel.options) {
+                    if (opt.value === "") continue;
+                    if (opt.value === current && sel === lastChangedSelect) {
+                        opt.hidden = false;
+                    } else if (selected.includes(opt.value) && opt.value !== current) {
+                        opt.hidden = true;
+                    } else {
+                        opt.hidden = false;
+                    }
+                }
+            });
+        }
+
+        function checkDuplicate() {
+            const seen = {};
+            document.querySelectorAll("select").forEach(sel => {
+                if (sel.value) {
+                    if (seen[sel.value]) {
+                        sel.classList.add("dup");
+                    } else {
+                        seen[sel.value] = true;
+                        sel.classList.remove("dup");
+                    }
+                } else {
+                    sel.classList.remove("dup");
+                }
+            });
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  DATE‑AWARE SAVE / LOAD / CLEAR (Supabase)
+        //  IMPORTANT: only dirty/changed rows are written.
+        //  This prevents a later full-table save from overwriting
+        //  previously selected dropdowns with blank values.
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        let _saveChain = Promise.resolve();
+        const _dirtyRows = new Map();
+
+        function makeRowKey(record) {
+            return [record.date, record.unit, record.panel, record.row_index].join('|');
+        }
+
+        function markRowDirty(record) {
+            _dirtyRows.set(makeRowKey(record), { ...record });
+        }
+
+        async function flushDirtyRows() {
+            if (_isLoading || _dirtyRows.size === 0) return true;
+
+            const rows = Array.from(_dirtyRows.values()).map(row => ({ ...row }));
+
+            const saveJob = async () => {
+                const { error } = await _sb
+                    .from('cctv_data')
+                    .upsert(rows, { onConflict: 'date,unit,panel,row_index' });
+
+                if (error) {
+                    console.error('Supabase dirty-row save error:', error);
+                    updateStatus('❌ Save failed');
+                    return false;
+                }
+
+                // Remove ONLY the rows that were successfully written.
+                rows.forEach(row => {
+                    const key = makeRowKey(row);
+                    const latest = _dirtyRows.get(key);
+                    if (latest && JSON.stringify(latest) === JSON.stringify(row)) {
+                        _dirtyRows.delete(key);
+                    }
+                });
+
+                updateStatus(`💾 Saved: ${formatDisplayDate(rows[0].date)}`);
+                return true;
+            };
+
+            _saveChain = _saveChain.catch(() => false).then(saveJob);
+            return await _saveChain;
+        }
+
+        async function saveData() {
+            if (_isLoading || !currentDate) return false;
+
+            // saveData is now a FLUSH operation, not a full-dashboard overwrite.
+            // This is critical for independent dropdown persistence.
+            return await flushDirtyRows();
+        }
+
+        async function loadData() {
+            if (!currentDate) return false;
+
+            const requestedDate = currentDate;
+            const requestedUnit = currentPage;
+
+            const { data, error } = await _sb
+                .from("cctv_data")
+                .select("date,unit,panel,row_index,client_name,cameras,shift,vms")
+                .eq("date", requestedDate)
+                .eq("unit", requestedUnit)
+                .order("panel")
+                .order("row_index");
+
+            if (error) {
+                console.error("Supabase load error:", error);
+                updateStatus("❌ Load failed");
+                return false;
+            }
+
+            // Ignore a stale response if the user changed date/unit while loading.
+            if (currentDate !== requestedDate || currentPage !== requestedUnit) {
+                return false;
+            }
+
+            // Server state is authoritative after a load.
+            for (const key of Array.from(_dirtyRows.keys())) {
+                if (key.startsWith(`${requestedDate}|${requestedUnit}|`)) {
+                    _dirtyRows.delete(key);
+                }
+            }
+
+            getActivePanels().forEach(panel => {
+                document.querySelectorAll(`#${panel}Body tr, #${panel}Light tr`).forEach(row => {
+                    const sel = row.querySelector("select");
+                    const inputs = row.querySelectorAll("input");
+                    if (sel) sel.value = "";
+                    inputs.forEach(input => input.value = "");
+                });
+            });
+
+            (data || []).forEach(item => {
+                const rows = document.querySelectorAll(
+                    `#${item.panel}Body tr, #${item.panel}Light tr`
+                );
+                const row = rows[item.row_index];
+                if (!row) return;
+
+                const sel = row.querySelector("select");
+                const inputs = row.querySelectorAll("input");
+
+                if (sel) sel.value = item.client_name || "";
+                if (inputs[0]) inputs[0].value = item.cameras ?? "";
+                if (inputs[1]) inputs[1].value = item.shift || "";
+                if (inputs[2]) inputs[2].value = item.vms || "";
+            });
+
+            updateDropdowns();
+            checkDuplicate();
+            calc();
+            applyColorsToDashboard();
+            updateStatus(`📂 Loaded: ${formatDisplayDate(requestedDate)}`);
+            return true;
+        }
+
+        async function clearAll() {
+            if (currentRole !== 'leader') return;
+            if (!currentDate) return;
+            if (!confirm(`🧹 Clear ALL data for ${formatDisplayDate(currentDate)} (current page)?`)) return;
+
+            _isLoading = true;
+            document.querySelectorAll(".page-container.active table tbody tr").forEach(row => {
+                const sel = row.querySelector("select");
+                if (sel) sel.value = "";
+                const inputs = row.querySelectorAll("input");
+                inputs.forEach(inp => inp.value = "");
+                row.querySelectorAll("td").forEach(td => {
+                    td.style.backgroundColor = '';
+                    td.style.color = '';
+                });
+                row.classList.remove("client-row-colored");
+            });
+
+            _isLoading = false;
+
+            // Mark every cleared row dirty so the clear persists in Supabase.
+            getActivePanels().forEach(panel => {
+                const tableRows = document.querySelectorAll(
+                    `#${panel}Body tr, #${panel}Light tr`
+                );
+                tableRows.forEach((row, rowIndex) => {
+                    markRowDirty({
+                        date: currentDate,
+                        unit: currentPage,
+                        panel,
+                        row_index: rowIndex,
+                        client_name: null,
+                        cameras: null,
+                        shift: null,
+                        vms: null
+                    });
+                });
+            });
+
+            await saveData();
+            updateDropdowns();
+            calc();
+            applyColorsToDashboard();
+            alert(`✅ Data for ${formatDisplayDate(currentDate)} cleared.`);
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  EXPORT / REPORT / THEME / SEARCH (unchanged)
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        function exportExcel() {
+            if (currentRole !== 'leader') return;
+            let table =
+            `<table border="1"><tr><th>Client</th><th>Cameras</th><th>Shift</th><th>VMS</th></tr>`;
+            document.querySelectorAll(".page-container.active table tbody tr").forEach(row => {
+                const sel = row.querySelector("select");
+                const inputs = row.querySelectorAll("input");
+                if (sel && sel.value) {
+                    table +=
+                        `<tr><td>${sel.value}</td><td>${inputs[0]?.value || ''}</td><td>${inputs[1]?.value || ''}</td><td>${inputs[2]?.value || ''}</td></tr>`;
+                }
+            });
+            table += `</table>`;
+            const blob = new Blob([table], { type: "application/vnd.ms-excel" });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = `CCTV_Dashboard_${currentPage}_${currentDate}.xls`;
+            a.click();
+        }
+
+        function generateReport() {
+            if (currentRole !== 'leader') return;
+            const activePageContainer = document.querySelector(".page-container.active");
+            const totalCameras = activePageContainer.querySelector(".totalCameras").innerText;
+            const totalClients = activePageContainer.querySelector(".totalClients").innerText;
+            const pageTitle = currentPage === "unit1" ? "Unit 1" : "Unit 2";
+            let report =
+                `📊 CCTV Daily Monitoring Report – ${pageTitle} (${formatDisplayDate(currentDate)})\n\nTotal Clients: ${totalClients}\nTotal Cameras: ${totalCameras}\n\n`;
+            const panels = getActivePanels();
+            panels.forEach(p => {
+                const panelTotal = document.getElementById("total" + p).innerText;
+                report += `🔹 ${p} – Total Cameras: ${panelTotal}\n`;
+                document.querySelectorAll(`#${p}Body tr, #${p}Light tr`).forEach(row => {
+                    const sel = row.querySelector("select");
+                    const inputs = row.querySelectorAll("input");
+                    if (sel && sel.value) {
+                        report += `  · ${sel.value} (${inputs[0].value})\n`;
+                    }
+                });
+                report += `\n`;
+            });
+            report += `---\nGenerated: ${new Date().toLocaleString()}`;
+            alert(report);
+            navigator.clipboard.writeText(report).catch(() => {});
+        }
+
+        function toggleTheme() {
+            const isDark = document.body.classList.toggle("dark");
+            localStorage.setItem("theme", isDark ? "dark" : "light");
+            applyColorsToDashboard();
+        }
+
+        function globalSearch(input) {
+            const val = input.value.toLowerCase();
+            document.querySelectorAll(".page-container.active table tbody tr").forEach(row => {
+                const text = row.innerText.toLowerCase();
+                row.style.display = text.includes(val) ? "" : "none";
+            });
+        }
+
+        function updateDate() {
+            const now = new Date();
+            document.querySelectorAll(".dateBox").forEach(db => {
+                db.innerText = now.toLocaleDateString() + "  ·  " + now.toLocaleTimeString();
+            });
+        }
+        setInterval(updateDate, 1000);
+        updateDate();
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  PAGE SWITCHER
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        async function switchPage(page) {
+            if (!["unit1", "unit2"].includes(page)) page = "unit1";
+
+            if (!_isLoading && currentDate) await saveData();
+
+            currentPage = page;
+            await setAppSetting("currentPage", page);
+
+            document.querySelectorAll(".page-btn").forEach(btn => {
+                btn.classList.toggle("active", btn.dataset.page === page);
+            });
+
+            document.querySelectorAll(".page-container").forEach(pc => pc.classList.remove("active"));
+            document.getElementById(`page-${page}`).classList.add("active");
+            document.querySelectorAll(".globalSearch").forEach(el => el.value = "");
+
+            await loadData();
+            calc();
+            requestAnimationFrame(() => applyColorsToDashboard());
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            document.querySelectorAll(".page-btn").forEach(btn => {
+                btn.addEventListener("click", async function() {
+                    await switchPage(this.dataset.page);
+                });
+            });
+        });
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  INITIALIZATION – LOAD CLIENTS + DATES FROM SUPABASE
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        window.onload = async function() {
+            checkSession();
+
+            await initializeClientData();
+
+            buildDashboard("page-unit1", panelsUnit1, operatorsUnit1);
+            buildDashboard("page-unit2", panelsUnit2, operatorsUnit2);
+            refreshAllDropdowns();
+
+            // Theme remains browser-local.
+            const savedTheme = localStorage.getItem("theme");
+            if (savedTheme === "dark") document.body.classList.add("dark");
+
+            await refreshAllDates();
+
+            let allDates = getAllDates();
+            const today = getTodayStr();
+
+            if (!allDates.length) {
+                const created = await createEmptyDate(today);
+                if (!created) {
+                    alert("❌ Could not initialise dashboard. Please refresh.");
+                    return;
+                }
+                allDates = getAllDates();
+            }
+
+            const savedDate = await getAppSetting("selectedDate", null);
+            const savedPage = await getAppSetting("currentPage", "unit1");
+
+            currentDate = savedDate && dateExists(savedDate)
+                ? savedDate
+                : allDates[allDates.length - 1];
+
+            currentPage = ["unit1", "unit2"].includes(savedPage) ? savedPage : "unit1";
+
+            document.querySelectorAll(".page-btn").forEach(btn => {
+                btn.classList.toggle("active", btn.dataset.page === currentPage);
+            });
+
+            document.querySelectorAll(".page-container").forEach(pc => pc.classList.remove("active"));
+            document.getElementById(`page-${currentPage}`).classList.add("active");
+
+            renderDateTabs();
+            await selectDate(currentDate);
+
+            // Dropdown changes are saved directly by createRow().
+            // Keep a small fallback only for editable table inputs, if any are added later.
+            document.addEventListener('input', function(e) {
+                if (e.target.closest('table') || e.target.closest('input')) {
+                    if (!_isLoading) {
+                        clearTimeout(window._saveTimer);
+                        window._saveTimer = setTimeout(() => saveData(), 300);
+                    }
+                }
+            });
+
+            updateStatus('✅ Dashboard ready');
+        };
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        //  MODAL ESCAPE HANDLING
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        document.addEventListener("keydown", function(e) {
+            if (e.key === "Escape") {
+                const topModal = modalStack.getTopModal();
+                if (topModal) {
+                    if (topModal === "addClientModal") closeAddClientModal();
+                    if (topModal === "clientMasterModal") closeClientMasterModal();
+                    if (topModal === "loginModal") closeLoginModal();
+                }
+            }
+        });
+
+        window.onclick = function(event) {
+            const topModal = modalStack.getTopModal();
+            if (!topModal) return;
+
+            const topModalElement = document.getElementById(topModal);
+            if (event.target === topModalElement) {
+                if (topModal === "addClientModal") closeAddClientModal();
+                if (topModal === "clientMasterModal") closeClientMasterModal();
+                if (topModal === "loginModal") closeLoginModal();
+            }
+        };
+    </script>
+
+</body>
+</html>
