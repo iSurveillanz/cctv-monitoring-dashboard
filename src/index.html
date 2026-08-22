@@ -1270,6 +1270,22 @@
             background: #6d28d9;
         }
 
+        .master-btn-add {
+            background: #3b7cff;
+        }
+
+        .master-btn-add:hover {
+            background: #2a6af0;
+        }
+
+        @media (max-width: 768px) {
+            .master-btn {
+                flex: 1 1 auto;
+                justify-content: center;
+                min-width: 120px;
+            }
+        }
+
         .stats-box {
             display: flex;
             gap: 24px;
@@ -1685,7 +1701,6 @@
                 <button class="btn-excel admin-only" onclick="exportExcel()">📥 Excel</button>
                 <button class="btn-report admin-only" onclick="generateReport()">📊 Report</button>
                 <button class="btn-dark" onclick="toggleTheme()">🌙 Dark</button>
-                <button class="btn-add admin-only" onclick="openAddClientModal()">➕ Add Client</button>
                 <button class="btn-master admin-only" onclick="openClientMasterModal()">📋 Client Master</button>
                 <button class="btn-logout admin-only" onclick="logout()" style="display:none;">🚪 Logout</button>
             </div>
@@ -1721,7 +1736,6 @@
                 <button class="btn-excel admin-only" onclick="exportExcel()">📥 Excel</button>
                 <button class="btn-report admin-only" onclick="generateReport()">📊 Report</button>
                 <button class="btn-dark" onclick="toggleTheme()">🌙 Dark</button>
-                <button class="btn-add admin-only" onclick="openAddClientModal()">➕ Add Client</button>
                 <button class="btn-master admin-only" onclick="openClientMasterModal()">📋 Client Master</button>
                 <button class="btn-logout admin-only" onclick="logout()" style="display:none;">🚪 Logout</button>
             </div>
@@ -1808,6 +1822,7 @@
                 <input type="text" id="masterSearch" class="master-search" placeholder="🔍 Search client …" onkeyup="filterClientMasterTable()" />
                 <button class="master-btn master-btn-export admin-only" onclick="exportClients()">📥 Export CSV</button>
                 <button class="master-btn master-btn-import admin-only" onclick="triggerImport()">📤 Import CSV</button>
+                <button class="master-btn master-btn-add admin-only" onclick="openAddClientModal()">➕ Add Client</button>
                 <input type="file" id="importFile" accept=".csv" onchange="importClients(event)" />
             </div>
 
